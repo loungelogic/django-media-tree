@@ -20,7 +20,8 @@ setup(
     
     packages = find_packages(),
     include_package_data=True,
-
+    
+    dependency_links = ['https://github.com/TAMUArch/django-media-tree.git#egg=media_tree-0.7.2']
     classifiers = [
         'Development Status :: 4 - Beta',
         'Framework :: Django',
