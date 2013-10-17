@@ -22,7 +22,7 @@ setup(
     include_package_data=True,
 
     install_requires = ['media_tree==0.7.2'],
-    dependency_links = ['https://github.com/TAMUArch/django-media-tree.git#egg=media_tree-0.7.2'],
+    dependency_links = ['http://github.com/TAMUArch/django-media-tree.git#egg=media_tree-0.7.2'],
 
     classifiers = [
         'Development Status :: 4 - Beta',
