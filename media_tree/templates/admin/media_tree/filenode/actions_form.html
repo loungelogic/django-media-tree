@@ -9,7 +9,7 @@
     {{ block.super }}
     {{ form.media }}
 {% endblock %}
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}admin/css/forms.css" />{% endblock %}
 {% block content %}
 {% if select_all %}
 <script type="text/javascript">
