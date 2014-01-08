@@ -525,7 +525,7 @@ class FileNodeAdmin(MPTTModelAdmin):
                 if request.is_ajax() and request.GET.get(FILE_PARAM_NAME, None):
                     from django.core.files.base import ContentFile
                     from django.core.files.uploadedfile import UploadedFile
-                    content_file = ContentFile(request.raw_post_data)
+                    content_file = ContentFile(request.body)
                     uploaded_file = UploadedFile(content_file, request.GET.get(FILE_PARAM_NAME), None, content_file.size)
                     form = UploadForm(request.POST, {'file': uploaded_file})
                 else:
@@ -542,7 +542,7 @@ class FileNodeAdmin(MPTTModelAdmin):
                     # For instance: When requesting the admin view without authentication, there is a redirect to the
                     # login form, which to SWFUpload looks like a successful upload request.
                     if request.is_ajax():
-                        return HttpResponse('{"success": true}', mimetype="application/json")
+                        return HttpResponse('{"success": true}', content_type="application/json")
                     else:
                         messages.info(request, _('Successfully uploaded file %s.') % node.name)
                         return HttpResponseRedirect(reverse('admin:media_tree_filenode_changelist'))
@@ -551,7 +551,7 @@ class FileNodeAdmin(MPTTModelAdmin):
                     if request.is_ajax():
                         return HttpResponse('{"error": "%s"}' % ' '.join(
                             [item for sublist in form.errors.values() for item in sublist]), 
-                            mimetype="application/json")
+                            content_type="application/json")
 
             # Form is rendered for troubleshooting SWFUpload. If this form works, the problem is not server-side.
             if not settings.DEBUG:
@@ -563,7 +563,7 @@ class FileNodeAdmin(MPTTModelAdmin):
         except Exception as e:
             if request.is_ajax():
                 return HttpResponse('{"error": "%s"}' % ugettext('Server Error'), 
-                    mimetype="application/json")
+                    content_type="application/json")
             else:
                 raise
 
