@@ -95,7 +95,9 @@ class FileNodeForeignKey(models.ForeignKey):
     be available for selection.
     """
 
-    def __init__(self, allowed_node_types=None, allowed_media_types=None, allowed_extensions=None, level_indicator=LEVEL_INDICATOR, *args, **kwargs):
+    def __init__(self, allowed_node_types=None, allowed_media_types=None,
+                 allowed_extensions=None, level_indicator=LEVEL_INDICATOR,
+                 *args, **kwargs):
         self.allowed_node_types = allowed_node_types
         self.allowed_media_types = allowed_media_types
         self.allowed_extensions = allowed_extensions
@@ -113,6 +115,19 @@ class FileNodeForeignKey(models.ForeignKey):
         }
         defaults.update(kwargs)
         return super(FileNodeForeignKey, self).formfield(**defaults)
+
+    def south_field_triple(self):
+        """ Returns a suitable description of this field for South.
+            Calling this function assumes South is present.
+
+            Since our 'to' kwarg is already defined
+            (a FileNodeForeignKey can only point to a FileNode, see __init__)
+            we need to patch it out of South's output.
+            """
+        from south.modelsinspector import introspector
+        args, kwargs = introspector(self)
+        kwargs.pop('to')
+        return ('media_tree.fields.FileNodeForeignKey', args, kwargs)
 
 
 class ImageFileNodeForeignKey(FileNodeForeignKey):
