@@ -181,8 +181,8 @@ class FileNode(ModelBase):
     # The actual media file 
     
     preview_file = models.ImageField(
-        blank=True, null=True, storage=STORAGE,
-        _('preview'), upload_to=app_settings.MEDIA_TREE_PREVIEW_SUBDIR,
+        _('preview'), blank=True, null=True, storage=STORAGE,
+        upload_to=app_settings.MEDIA_TREE_PREVIEW_SUBDIR,
         help_text=_('Use this field to upload a preview image for video or '
                     'similar media types.'))
     # An optional image file that will be used for previews. 
