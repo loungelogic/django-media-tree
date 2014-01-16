@@ -43,11 +43,6 @@ MEDIA_TYPE_NAMES = app_settings.MEDIA_TREE_CONTENT_TYPES
 ICON_FINDERS = get_icon_finders(app_settings.MEDIA_TREE_ICON_FINDERS)
 
 
-# http://adam.gomaa.us/blog/2008/aug/11/the-python-property-builtin/
-def Property(func):
-    return property(**func())
-
-
 class FileNodeManager(models.Manager):
     """ A special manager that enables you to pass a ``path`` argument to
         :func:`get`, :func:`filter`, and :func:`exclude`, allowing you to 
@@ -351,25 +346,23 @@ class FileNode(ModelBase):
         """ Returns True if the model instance is the top node. """
         return self.level == -1
 
+
+    @property
+    def link(self):
+        return getattr(self, 'link_obj', None)
+
+    @link.setter
+    def link(self, value):
+        self.link_obj = link_obj
+
+    @link.deleter
+    def link(self):
+        del self.link_obj
+    
     # Workaround for http://code.djangoproject.com/ticket/11058 --
     # which was apparently fixed in Django 1.2
     def admin_preview(self):
         pass
-
-    # TODO: What's this for again?
-    @Property
-    def link():
-        
-        def fget(self):
-            return getattr(self, 'link_obj', None)
-        
-        def fset(self, link_obj):
-            self.link_obj = link_obj
-
-        def fdel(self):
-            del self.link_obj
-
-        return locals()
 
     def attach_user(self, user, change):
         if not change:
