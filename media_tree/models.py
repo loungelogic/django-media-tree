@@ -49,20 +49,19 @@ def Property(func):
 
 
 class FileNodeManager(models.Manager):
-    """ 
-    A special manager that enables you to pass a ``path`` argument to 
-    :func:`get`, :func:`filter`, and :func:`exclude`, allowing you to 
-    retrieve ``FileNode`` objects by their full node path, 
-    which consists of the names of its parents and itself,
-    e.g. ``"path/to/folder/readme.txt"``.
-    """
+    """ A special manager that enables you to pass a ``path`` argument to
+        :func:`get`, :func:`filter`, and :func:`exclude`, allowing you to 
+        retrieve ``FileNode`` objects by their full node path, 
+        which consists of the names of its parents and itself,
+        e.g. ``"path/to/folder/readme.txt"``. """
 
     def __init__(self, filter_args={}):
         super(FileNodeManager, self).__init__()
         self.filter_args = filter_args
 
     def get_query_set(self):
-        return super(FileNodeManager, self).get_query_set().filter(**self.filter_args)
+        return super(FileNodeManager, self).get_query_set() \
+                                           .filter(**self.filter_args)
 
     def get_filter_args_with_path(self, for_self, **kwargs):
         names = kwargs['path'].strip('/').split('/')
@@ -79,34 +78,31 @@ class FileNodeManager(models.Manager):
         return new_kwargs
 
     def filter(self, *args, **kwargs):
-        """
-        Works just like the default Manager's :func:`filter` method, but
-        you can pass an additional keyword argument named ``path`` specifying
-        the full **path of the folder whose immediate child objects** you 
-        want to retrieve, e.g. ``"path/to/folder"``. 
-        """
+        """ Works just like the default Manager's :func:`filter` method, but
+            you can pass an additional keyword argument named ``path``
+            specifying the full **path of the folder whose immediate child
+            objects** you want to retrieve, e.g. ``"path/to/folder"``. """
+
         if 'path' in kwargs:
             kwargs = self.get_filter_args_with_path(False, **kwargs)
         return super(FileNodeManager, self).filter(*args, **kwargs)
 
     def exclude(self, *args, **kwargs):
-        """
-        Works just like the default Manager's :func:`exclude` method, but
-        you can pass an additional keyword argument named ``path`` specifying
-        the full **path of the folder whose immediate child objects** you 
-        want to exclude, e.g. ``"path/to/folder"``. 
-        """
+        """ Works just like the default Manager's :func:`exclude` method, but
+            you can pass an additional keyword argument named ``path``
+            specifying the full **path of the folder whose immediate child
+            objects** you  want to exclude, e.g. ``"path/to/folder"``. """
+
         if 'path' in kwargs:
             kwargs = self.get_filter_args_with_path(False, **kwargs)
         return super(FileNodeManager, self).exclude(*args, **kwargs)
 
     def get(self, *args, **kwargs):
-        """
-        Works just like the default Manager's :func:`get` method, but
-        you can pass an additional keyword argument named ``path`` specifying
-        the full path of the object you want to retrieve, e.g.
-        ``"path/to/folder/readme.txt"``. 
-        """
+        """ Works just like the default Manager's :func:`get` method, but
+            you can pass an additional keyword argument named ``path``
+            specifying the full path of the object you want to retrieve, e.g.
+            ``"path/to/folder/readme.txt"``. """
+
         if 'path' in kwargs:
             kwargs = self.get_filter_args_with_path(True, **kwargs)
         return super(FileNodeManager, self).get(
@@ -114,138 +110,213 @@ class FileNodeManager(models.Manager):
 
 
 class FileNode(ModelBase):
-    """
-    Each ``FileNode`` instance represents a node in the media object tree, that
-    is to say a “file” or “folder”. Accordingly, their ``node_type`` attribute
-    can either be ``FileNode.FOLDER``, meaning that they may have child nodes,
-    or ``FileNode.FILE``, meaning that they are associated to media files in
-    storage and are storing metadata about those files.
+    """ Each ``FileNode`` instance represents a node in the media object tree,
+        that is to say a “file” or “folder”. Accordingly, their ``node_type``
+        attribute can either be ``FileNode.FOLDER``, meaning that they may
+        have child nodes, or ``FileNode.FILE``, meaning that they are
+        associated to media files in storage and are storing metadata about
+        those files.
 
-    .. Note::
-       Since ``FileNode`` is a child class of ``MPTTModel``, it inherits many
-       methods that facilitate queries and data manipulation when working with
-       trees.
+        .. Note::
+           Since ``FileNode`` is a child class of ``MPTTModel``, it inherits
+           many methods that facilitate queries and data manipulation when
+           working with trees.
 
-    You can access the actual media associated to a ``FileNode`` model instance 
-    using the following fields:
+        You can access the actual media associated to a ``FileNode`` model
+        instance  using the following fields:
 
-    .. role:: descname(literal)
-       :class: descname 
+        .. role:: descname(literal)
+           :class: descname 
 
-    :descname:`file`
-        The actual media file
+        :descname:`file`
+            The actual media file
 
-    :descname:`preview_file`
-        An optional image file that will be used for previews. This is useful 
-        for visual media that PIL cannot read, such as video files.
+        :descname:`preview_file`
+            An optional image file that will be used for previews. This is
+            useful  for visual media that PIL cannot read, such as video files.
 
-    These fields are of the class ``FileField``. Please see :ref:`configuration`
-    for information on how to configure storage and media backend classes. By
-    default, media files are stored in a subfolder ``uploads`` under your media
-    root.
-    """
+        These fields are of the class ``FileField``. Please see
+        :ref:`configuration` for information on how to configure storage and
+        media backend classes. By default, media files are stored in a
+        subfolder ``uploads`` under your media root. """
+
+
+    # Constants
 
     FOLDER = media_types.FOLDER
-    """ The constant denoting a folder node, used for the :attr:`node_type` attribute. """
+    """ The constant denoting a folder node, used for the :attr:`node_type`
+        attribute. """
 
     FILE = media_types.FILE
-    """ The constant denoting a file node, used for the :attr:`node_type` attribute. """
+    """ The constant denoting a file node, used for the :attr:`node_type`
+        attribute. """
 
     STORAGE = get_media_storage()
+    """ An instance of the storage class configured in
+        ``settings.MEDIA_TREE_STORAGE``. """
+
+
+    # Managers
 
     tree = TreeManager()
     """ MPTT tree manager """
 
     objects = FileNodeManager()
-    """ 
-    An instance of the :class:`FileNodeManager` class, providing methods for retrieving ``FileNode`` objects by their full node path.
-    """
+    """ An instance of the :class:`FileNodeManager` class, providing methods
+        for retrieving ``FileNode`` objects by their full node path. """
 
     published_objects = FileNodeManager({'published': True})
-    """ 
-    A special manager with the same features as :attr:`objects`, but only displaying currently
-    published objects.
-    """
+    """ A special manager with the same features as :attr:`objects`, but only
+        displaying currently published objects. """
 
     folders = FileNodeManager({'node_type': FOLDER})
-    """ 
-    A special manager with the same features as :attr:`objects`, but only displaying folder nodes.
-    """
+    """ A special manager with the same features as :attr:`objects`,
+        but only displaying folder nodes. """
 
     files = FileNodeManager({'node_type': FILE})
-    """ 
-    A special manager with the same features as :attr:`objects`, but only displaying file nodes,
-    no folder nodes.
-    """
+    """ A special manager with the same features as :attr:`objects`,
+        but only displaying file nodes, no folder nodes. """
 
-    # FileFields -- have no docstring since Sphinx cannot access these attributes
-    file = models.FileField(_('file'), upload_to=app_settings.MEDIA_TREE_UPLOAD_SUBDIR, null=True, storage=STORAGE)
+
+    # FileFields
+    # No docstring since Sphinx can't access these attributes; see class doc
+
+    file = models.FileField(_('file'), null=True, storage=STORAGE,
+                            upload_to=app_settings.MEDIA_TREE_UPLOAD_SUBDIR)
     # The actual media file 
-    preview_file = models.ImageField(_('preview'), upload_to=app_settings.MEDIA_TREE_PREVIEW_SUBDIR, blank=True, null=True, help_text=_('Use this field to upload a preview image for video or similar media types.'), storage=STORAGE)
-    # An optional image file that will be used for previews. This is useful for video files. 
+    
+    preview_file = models.ImageField(
+        blank=True, null=True, storage=STORAGE,
+        _('preview'), upload_to=app_settings.MEDIA_TREE_PREVIEW_SUBDIR,
+        help_text=_('Use this field to upload a preview image for video or '
+                    'similar media types.'))
+    # An optional image file that will be used for previews. 
+    # This is useful for video files. 
 
-    parent = models.ForeignKey('self', null=True, blank=True, related_name='children', verbose_name=_('folder'), limit_choices_to={'node_type': FOLDER})
+    parent = models.ForeignKey(
+        'self', null=True, blank=True, related_name='children',
+        verbose_name=_('folder'), limit_choices_to={'node_type': FOLDER})
     """ The parent (folder) object of the node. """
     
-    node_type = models.IntegerField(_('node type'), choices = ((FOLDER, 'Folder'), (FILE, 'File')), editable=False, blank=False, null=False)
+    node_type = models.IntegerField(
+        _('node type'), choices=((FOLDER, 'Folder'), (FILE, 'File')),
+        editable=False, blank=False, null=False)
     """ Type of the node (:attr:`FileNode.FILE` or :attr:`FileNode.FOLDER`) """
-    media_type = models.IntegerField(_('media type'), choices = app_settings.MEDIA_TREE_CONTENT_TYPE_CHOICES, blank=True, null=True, editable=False)
+
+    media_type = models.IntegerField(
+        _('media type'), choices=app_settings.MEDIA_TREE_CONTENT_TYPE_CHOICES,
+        blank=True, null=True, editable=False)
     """ Media type, i.e. broad category of the kind of media """
-    published = models.BooleanField(_('is published'), blank=True, default=True)
+    
+    published = models.BooleanField(
+        _('is published'), blank=True, default=True)
     """ Publish date and time """
-    mimetype = models.CharField(_('mimetype'), max_length=64, null=True, editable=False)
+    
+    mimetype = models.CharField(
+        _('mimetype'), max_length=64, null=True, editable=False)
     """ The mime type of the media file """
+    
     name = models.CharField(_('name'), max_length=255, null=True)
     """ Name of the file or folder """
-    title = models.CharField(_('title'), max_length=255, default='', null=True, blank=True)
+    
+    title = models.CharField(
+        _('title'), max_length=255, default='', null=True, blank=True)
     """ Title for the file """
-    description = models.TextField(_('description'), default='', null=True, blank=True)
+    
+    description = models.TextField(
+        _('description'), default='', null=True, blank=True)
     """ Description for the file """
-    author = models.CharField(_('author'), max_length=255, default='', null=True, blank=True)
+    
+    author = models.CharField(
+        _('author'), max_length=255, default='', null=True, blank=True)
     """ Author name of the file """
+    
     publish_author = models.BooleanField(_('publish author'), default=False)
     """ Flag to toggle whether the author name should be displayed """
-    copyright = models.CharField(_('copyright'), max_length=255, default='', null=True, blank=True)
+    
+    copyright = models.CharField(
+        _('copyright'), max_length=255, default='', null=True, blank=True)
     """ Copyright information for the file """
-    publish_copyright = models.BooleanField(_('publish copyright'), default=False)
+    
+    publish_copyright = models.BooleanField(
+        _('publish copyright'), default=False)
     """ Flag to toggle whether copyright information should be displayed """
+    
     date_time = models.DateTimeField(_('date/time'), null=True, blank=True)
-    """ Date and time information for the file (authoring or publishing date) """
-    publish_date_time = models.BooleanField(_('publish date/time'), default=False)
-    """ Flag to toggle whether date and time information should be displayed """
-    keywords = models.CharField(_('keywords'), max_length=255, null=True, blank=True)
+    """ Date and time information for the file (authoring or
+        publishing date) """
+    
+    publish_date_time = models.BooleanField(
+        _('publish date/time'), default=False)
+    """ Flag to toggle whether date and time information should
+        be displayed """
+    
+    keywords = models.CharField(
+        _('keywords'), max_length=255, null=True, blank=True)
     """ Keywords for the file """
-    override_alt = models.CharField(_('alternative text'), max_length=255, default='', null=True, blank=True, help_text=_('If you leave this blank, the alternative text will be compiled automatically from the available metadata.'))
-    """ Alt text override. If empty, the alt text will be compiled from the all metadata that is available and flagged to be displayed. """
-    override_caption = models.CharField(_('caption'), max_length=255, default='', null=True, blank=True, help_text=_('If you leave this blank, the caption will be compiled automatically from the available metadata.'))
-    """ Caption override. If empty, the caption will be compiled from the all metadata that is available and flagged to be displayed. """
+    
+    override_alt = models.CharField(
+        _('alternative text'), max_length=255, default='',
+        null=True, blank=True, help_text=_(
+            'If you leave this blank, the alternative text will be compiled '
+            'automatically from the available metadata.'))
+    """ Alt text override. If empty, the alt text will be compiled from
+        all metadata that is available and flagged to be displayed. """
+    
+    override_caption = models.CharField(
+        _('caption'), max_length=255, default='', null=True, blank=True,
+        help_text=_('If you leave this blank, the caption will be compiled '
+                    'automatically from the available metadata.'))
+    """ Caption override. If empty, the caption will be compiled from
+        all metadata that is available and flagged to be displayed. """
 
     has_metadata = models.BooleanField(_('metadata entered'), editable=False)
     """ Flag specifying whether the absolute minimal metadata was entered """
 
-    extension = models.CharField(_('type'), default='', max_length=10, null=True, editable=False)
+    extension = models.CharField(
+        _('type'), default='', max_length=10, null=True, editable=False)
     """ File extension, lowercase """
+    
     size = models.IntegerField(_('size'), null=True, editable=False)
     """ File size in bytes """
+    
     # TODO: Refactor PIL stuff, width|height as extension?
-    width = models.IntegerField(_('width'), null=True, blank=True, help_text=_('Detected automatically for supported images'))
+    width = models.IntegerField(
+        _('width'), null=True, blank=True,
+        help_text=_('Detected automatically for supported images'))
     """ For images: width in pixels """
-    height = models.IntegerField(_('height'), null=True, blank=True, help_text=_('Detected automatically for supported images'))
+    
+    height = models.IntegerField(
+        _('height'), null=True, blank=True,
+        help_text=_('Detected automatically for supported images'))
     """ For images: height in pixels """
 
-    slug = models.CharField(_('slug'), max_length=255, null=True, editable=False)
+    slug = models.CharField(
+        _('slug'), max_length=255, null=True, editable=False)
     """ Slug for the object """
-    is_default = models.BooleanField(_('use as default object for folder'), blank=True, default=False, help_text=_('The default object of a folder can be used for folder previews etc.'))
+    
+    is_default = models.BooleanField(
+        _('use as default object for folder'), blank=True, default=False,
+        help_text=_('The default object of a folder, which can be used for'
+                    ' folder previews, etc.'))
     """ Flag whether the file is the default file in its parent folder """
 
-    created = models.DateTimeField(_('created'), auto_now_add=True, editable=False)
+    created = models.DateTimeField(
+        _('created'), auto_now_add=True, editable=False)
     """ Date and time when object was created """
-    modified = models.DateTimeField(_('modified'), auto_now=True, editable=False)
+    
+    modified = models.DateTimeField(
+        _('modified'), auto_now=True, editable=False)
     """ Date and time when object was last modified """
 
-    created_by = models.ForeignKey(User, null=True, blank=True, related_name='created_by', verbose_name = _('created by'), editable=False)
+    created_by = models.ForeignKey(
+        User, verbose_name=_('created by'), related_name='created_by',
+        null=True, blank=True, editable=False)
     """ User that created the object """
-    modified_by = models.ForeignKey(User, null=True, blank=True, related_name='modified_by', verbose_name = _('modified by'), editable=False)
+    
+    modified_by = models.ForeignKey(
+        User, verbose_name=_('modified by'), related_name='modified_by',
+        null=True, blank=True, editable=False)
     """ User that last modified the object """
 
     position = models.IntegerField(_('position'), default=0)
@@ -260,38 +331,38 @@ class FileNode(ModelBase):
 
     class Meta:
         ordering = ['tree_id', 'lft']
+        permissions = (("manage_filenode", "Can perform management tasks"),)
         verbose_name = _('media object')
         verbose_name_plural = _('media objects')
-        permissions = (
-            ("manage_filenode", "Can perform management tasks"),
-        )
+
 
     class MPTTMeta:
         order_insertion_by = ['name']
 
+
     @staticmethod
     def get_top_node():
-        """Returns a symbolic node representing the root of all nodes. This node
-        is not actually stored in the database, but used in the admin to link to
-        the change list.
-        """
+        """ Returns a symbolic node representing the root of all nodes.
+            This node is not actually stored in the database, but used in the
+            admin to link to the change list. """
         return FileNode(name=('Media objects'), level=-1)
 
     def is_top_node(self):
-        """Returns True if the model instance is the top node."""
+        """ Returns True if the model instance is the top node. """
         return self.level == -1
 
-    # Workaround for http://code.djangoproject.com/ticket/11058
+    # Workaround for http://code.djangoproject.com/ticket/11058 --
+    # which was apparently fixed in Django 1.2
     def admin_preview(self):
         pass
 
     # TODO: What's this for again?
     @Property
     def link():
-
+        
         def fget(self):
             return getattr(self, 'link_obj', None)
-
+        
         def fset(self, link_obj):
             self.link_obj = link_obj
 
@@ -323,8 +394,9 @@ class FileNode(ModelBase):
                 files = self.get_children().filter(node_type=FileNode.FILE)
             else:
                 files = self.get_children().filter(media_type__in=media_types)
-            # TODO the two counts are due to the fact that, at this time, it seems
-            # not possible to order the QuerySet returned by get_children() by is_default
+            # TODO the two counts are due to the fact that, at this time,
+            # it seems not possible to order the QuerySet returned by
+            # get_children() by is_default
             if files.count() > 0:
                 default = files.filter(is_default=True)
                 if default.count() > 0:
@@ -337,13 +409,13 @@ class FileNode(ModelBase):
             return self
 
     def get_qualified_file_url(self, field_name='file'):
-        """Returns a fully qualified URL for the :attr:`file` field, including
-        protocol, domain and port. In most cases, you can just use ``file.url``
-        instead, which (depending on your ``MEDIA_URL``) may or may not contain
-        the domain. In some cases however, you always need a fully qualified
-        URL. This includes, for instance, embedding a flash video player from a
-        remote domain and passing it a video URL.
-        """
+        """ Returns a fully qualified URL for the :attr:`file` field,
+            including protocol, domain and port. In most cases, you can just
+            use ``file.url`` instead, which (depending on your ``MEDIA_URL``)
+            may or may not contain the domain. In some cases however, you
+            always need a fully qualified URL. This includes, for instance,
+            embedding a flash video player from a remote domain and passing
+            it a video URL. """
         url = getattr(self, field_name).url
         if '://' in url:
             # `MEDIA_URL` already contains domain
@@ -351,18 +423,16 @@ class FileNode(ModelBase):
         protocol = getattr(settings, 'PROTOCOL', 'http')
         domain = Site.objects.get_current().domain
         port = getattr(settings, 'PORT', '')
-        return '%(protocol)s://%(domain)s%(port)s%(url)s' % {
-            'protocol': 'http',
-            'domain': domain.rstrip('/'),
-            'port': ':'+port if port else '',
-            'url': url,
-    }
+        url = '%(protocol)s://%(domain)s%(port)s%(url)s'
+        return url % {'protocol': 'http',
+                      'domain': domain.rstrip('/'),
+                      'port': ':'+port if port else '',
+                      'url': url}
 
     def get_qualified_preview_url(self):
-        """Similar to :func:`get_qualified_file_url`, but returns the URL for
-        the :attr:`preview_file` field, which can be used to associate image
-        previews with video files.
-        """
+        """ Similar to :func:`get_qualified_file_url`, but returns the URL
+            for the :attr:`preview_file` field, which can be used to
+            associate image previews with video files. """
         return self.get_qualified_file_url('preview_file')
 
     def get_preview_file(self, default_name=None):
@@ -423,7 +493,7 @@ class FileNode(ModelBase):
         return '%s%s' % (path, self.name)
 
     def get_admin_url(self, query_params=None, use_path=False):
-        """Returns the URL for viewing a FileNode in the admin."""
+        """ Returns the URL for viewing a FileNode in the admin. """
 
         if not query_params:
             query_params = {}
@@ -432,22 +502,27 @@ class FileNode(ModelBase):
         if self.is_top_node():
             url = reverse('admin:media_tree_filenode_changelist');
         elif use_path and (self.is_folder() or self.pk):
-            url = reverse('admin:media_tree_filenode_open_path', args=(self.get_path(),));
+            url = reverse('admin:media_tree_filenode_open_path',
+                          args=(self.get_path(),))
         elif self.is_folder():
             url = reverse('admin:media_tree_filenode_changelist');
             query_params['folder_id'] = self.pk
         elif self.pk:
-            return reverse('admin:media_tree_filenode_change', args=(self.pk,));
+            return reverse('admin:media_tree_filenode_change',
+                           args=(self.pk,))
 
         if len(query_params):
-            params = ['%s=%s' % (key, value) for key, value in query_params.items()]
+            params = ['%s=%s' % (key, value)
+                      for key, value in query_params.items()]
             url = '%s?%s' % (url, "&".join(params))
 
         return url
 
     def get_admin_link(self):
-        return force_unicode(mark_safe(u'%s: <a href="%s">%s</a>' %
-            (capfirst(self._meta.verbose_name), self.get_admin_url(), self.__unicode__())))
+        link = u'%s: <a href="%s">%s</a>' % (capfirst(self._meta.verbose_name),
+                                             self.get_admin_url(),
+                                             self.__unicode__())
+        return force_unicode(mark_safe(link))
 
     @staticmethod
     def get_mimetype(filename, fallback_type='application/x-unknown'):
@@ -486,7 +561,8 @@ class FileNode(ModelBase):
     # TODO: Move to extension
     def resolution_formatted(self):
         if self.width and self.height:
-            return _(u'%(width)i×%(height)i') % {'width': self.width, 'height': self.height}
+            return _(u'%(width)i×%(height)i') % {'width': self.width,
+                                                 'height': self.height}
         else:
             return ''
     resolution_formatted.short_description = _('Resolution')
@@ -498,10 +574,11 @@ class FileNode(ModelBase):
         if self.pk:
             qs = qs.exclude(pk=self.pk)
         number = 1
-        while qs.filter(name__exact=self.name).count() > 0:
+        while qs.filter(name__exact=self.name).count() > 0:  # what, really?!
             number += 1
             # rename using a number
-            self.name = app_settings.MEDIA_TREE_NAME_UNIQUE_NUMBERED_FORMAT % {'name': name, 'number': number, 'ext': ext}
+            self.name = app_settings.MEDIA_TREE_NAME_UNIQUE_NUMBERED_FORMAT % {
+                'name': name, 'number': number, 'ext': ext}
 
     def prevent_save(self):
         self.save_prevented = True
@@ -510,15 +587,18 @@ class FileNode(ModelBase):
 
         if getattr(self, 'save_prevented', False):
             from django.core.exceptions import ValidationError
-            raise ValidationError('Saving was presented for this FileNode object.')
+            raise ValidationError('Saving was prevented for this'
+                                  ' FileNode object.')
 
         if self.node_type == FileNode.FOLDER:
             self.media_type = FileNode.FOLDER
-            # Admin asserts that folder name is unique under parent. For other inserts:
+            # Admin asserts that folder name is unique under parent.
+            # For other inserts:
             self.make_name_unique_numbered(self.name)
         else:
-            # TODO: If file was not changed, this field will nevertheless be changed to
-            # the name of the renamed file on disk. Do not do this unless a new file is being saved.
+            # TODO: If file was not changed, this field will nevertheless
+            # be changed to the name of the renamed file on disk. Do not
+            # do this unless a new file is being saved.
             file_changed = True
             if self.pk:
                 try:
@@ -529,7 +609,9 @@ class FileNode(ModelBase):
                     pass
             if file_changed:
                 self.name = os.path.basename(self.file.name)
-                # using os.path.splitext(), foo.tar.gz would become foo.tar_2.gz instead of foo_2.tar.gz
+
+                # using os.path.splitext(), foo.tar.gz would become
+                # foo.tar_2.gz instead of foo_2.tar.gz
                 split = multi_splitext(self.name)
                 self.make_name_unique_numbered(split[0], split[1])
 
@@ -539,15 +621,17 @@ class FileNode(ModelBase):
                 self.width, self.height = (None, None)
 
                 self.file.name = self.name
-                # TODO: A hash (created by storage class!) would be great because it would obscure file
-                # names, but it would be inconvenient for downloadable files
-                # self.file.name = str(uuid.uuid4()) + '.' + self.extension
+                # TODO: A hash (created by storage class!) would be great
+                # because it would obscure file names, but it would be
+                # inconvenient for downloadable files
+                self.file.name = str(uuid.uuid4()) + '.' + self.extension
 
                 # Determine whether file is a supported image:
                 try:
                     self.pre_save_image()
                 except IOError:
-                    self.media_type = FileNode.mimetype_to_media_type(self.name)
+                    self.media_type = \
+                        FileNode.mimetype_to_media_type(self.name)
 
         self.slug = slugify(self.name)
         self.has_metadata = self.check_minimal_metadata()
@@ -576,80 +660,88 @@ class FileNode(ModelBase):
         return self.name
 
     def check_minimal_metadata(self):
-        result = (self.media_type in app_settings.MEDIA_TREE_METADATA_LESS_MEDIA_TYPES  \
-            and self.name != '') or  \
-            (self.title != '' or self.description != '' or  \
-            self.override_alt != '' or self.override_caption != '')
+        metadataless = app_settings.MEDIA_TREE_METADATA_LESS_MEDIA_TYPES
+        result = (self.media_type in metadataless and self.name != '') \
+                  or (self.title != '' or self.description != '' or \
+                      self.override_alt != '' or self.override_caption != '')
         if result and self.node_type == FileNode.FOLDER and self.pk:
             result = self.has_metadata_including_descendants()
         return result
 
     def get_metadata_display(self, field_formats = {}, escape=True):
-        """Returns object metadata that has been selected to be displayed to
-        users, compiled as a string.
-        """
+        """ Returns object metadata that has been selected to be displayed to
+        users, compiled as a string. """
+
         def field_format(field):
             if field in field_formats:
                 return field_formats[field]
             return u'%s'
-        t = join_formatted('', self.title, format=field_format('title'), escape=escape)
+        t = join_formatted('', self.title, 
+                           format=field_format('title'), escape=escape)
         t = join_formatted(t, self.description, u'%s: %s', escape=escape)
         if self.publish_author:
-            t = join_formatted(t, self.author, u'%s' + u' – ' + u'Author: %s', u'%s' + u'Author: %s', escape=escape)
+            t = join_formatted(t, self.author, u'%s' + u' – ' + u'Author: %s',
+                               u'%s' + u'Author: %s', escape=escape)
         if self.publish_copyright:
             t = join_formatted(t, self.copyright, u'%s, %s', escape=escape)
         if self.publish_date_time and self.date_time:
-            date_time_formatted = dateformat.format(self.date_time, get_format('DATE_FORMAT'))
-            t = join_formatted(t, date_time_formatted, u'%s (%s)', '%s%s', escape=escape)
+            date_time_formatted = dateformat.format(self.date_time,
+                                                    get_format('DATE_FORMAT'))
+            t = join_formatted(t, date_time_formatted, u'%s (%s)',
+                               '%s%s', escape=escape)
         return t
     get_metadata_display.allow_tags = True
 
     def get_metadata_display_unescaped(self):
-        """Returns object metadata that has been selected to be displayed to
-        users, compiled as a string with the original field values left unescaped,
-        i.e. the original field values may contain tags.
-        """
+        """ Returns object metadata that has been selected to be displayed to
+            users, compiled as a string with the original field values left
+            unescaped, i.e. the original field values may contain tags. """
+        
         return self.get_metadata_display(escape=False)
     get_metadata_display_unescaped.allow_tags = True
 
-    def get_caption_formatted(self, field_formats = app_settings.MEDIA_TREE_METADATA_FORMATS, escape=True):
-        """Returns object metadata that has been selected to be displayed to
-        users, compiled as a string including default formatting, for example
-        bold titles.
+    def get_caption_formatted(
+        self, field_formats=app_settings.MEDIA_TREE_METADATA_FORMATS,
+        escape=True):
 
-        You can use this method in templates where you want to output image
-        captions.
-        """
+        """ Returns object metadata that has been selected to be displayed to
+            users, compiled as a string including default formatting, for
+            example bold titles.
+
+            You can use this method in templates where you want to output
+            image captions. """
+        
         if self.override_caption != '':
             return self.override_caption
         else:
-            return mark_safe(self.get_metadata_display(field_formats, escape=escape))
+            return mark_safe(
+                self.get_metadata_display(field_formats, escape=escape))
     get_caption_formatted.allow_tags = True
     get_caption_formatted.short_description = _('displayed metadata')
 
     def get_caption_formatted_unescaped(self):
-        """Returns object metadata that has been selected to be displayed to
-        users, compiled as a string with the original field values left unescaped,
-        i.e. the original field values may contain tags.
-        """
+        """ Returns object metadata that has been selected to be displayed to
+            users, compiled as a string with the original field values left
+            unescaped, i.e. the original field values may contain tags. """
+        
         return self.get_caption_formatted(escape=False)
     get_caption_formatted_unescaped.allow_tags = True
     get_caption_formatted_unescaped.short_description = _('displayed metadata')
 
     @property
     def alt(self):
-        """Returns object metadata suitable for use as the HTML ``alt``
-        attribute. You can use this method in templates::
+        """ Returns object metadata suitable for use as the HTML ``alt``
+            attribute. You can use this method in templates::
 
-            <img src="{{ node.file.url }}" alt="{{ node.alt }}" />
-
-        """
+            <img src="{{ node.file.url }}" alt="{{ node.alt }}" /> """
+        
         if self.override_alt != '' and self.override_alt is not None:
             return self.override_alt
         elif self.override_caption != '' and self.override_caption is not None:
             return self.override_caption
         else:
             return self.get_metadata_display()
+
 
 # Legacy mptt support
 if ModelBase == models.Model:
@@ -659,6 +751,7 @@ if ModelBase == models.Model:
             order_insertion_by=FileNode.MPTTMeta.order_insertion_by)
     except mptt.AlreadyRegistered:
         pass
+
 
 from media_tree.utils import autodiscover_media_extensions
 autodiscover_media_extensions()
