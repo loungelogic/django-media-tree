@@ -117,9 +117,6 @@ class BaseNode(ModelBase):
         verbose_name = _('file node')
         verbose_name_plural = _('file node')
 
-    class MPTTMeta:
-        order_insertion_by = ['name']
-
     # Constants
 
     STORAGE = get_media_storage()
@@ -394,8 +391,6 @@ class SimpleFileNode(FolderMixin, BaseNode):
 
 
 class MetadataMixin(object):
-    class MPTTMeta:
-        order_insertion_by = ['name']
 
     # Managers    
 
@@ -628,6 +623,9 @@ class MetadataMixin(object):
 
 
 class FileInfoMixin(object):
+    class MPTTMeta:
+        order_insertion_by = ['name']
+        
     name = models.CharField(_('name'), max_length=255, null=True)
     """ Name of the file or folder """
 
