@@ -4,50 +4,73 @@ from media_tree import media_types
 from django.utils.datastructures import SortedDict
 
 
-MEDIA_TREE_STORAGE = getattr(settings, 'MEDIA_TREE_STORAGE', None)
-"""
-File storage class to be used for any file-related operations when dealing with
-media files.
+MEDIA_TREE_MODEL = \
+    getattr(settings, 'MEDIA_TREE_MODEL', 'media_tree.FileNode')
+""" Points to the model to be used by ``media_tree`` to represent uploaded
+    files.
 
-This is not set by default, meaning that Django's ```DEFAULT_FILE_STORAGE``
-<https://docs.djangoproject.com/en/dev/ref/settings/#default-file-storage>`_
-will be used. Please refer to the relevant Django documentation on `file storage
-<https://docs.djangoproject.com/en/dev/ref/files/storage/#module-django.core.files.storage>`_.
+    This defaults to ``'media_tree.FileNode'``, which includes a number of
+    fields for storing file info and metadata. Alternatively, you could use
+    the bare-bones ``'media_tree.SimpleFileNode'`` model, which contains no
+    metadata at all; however, admin support for it is not yet implemented.
+
+    ``media_tree`` recognizes that your use case is likely to require storing
+    a different set of metadata altogether; the base classes and mixins
+    provided in ``models.py`` are intended to be used as a starting point for
+    the task of defining your own model. Having defined a model of your own,
+    just set `MEDIA_TREE_MODEL` to `'your_app.YourModel'` and `media_tree`
+    will pick that up.
+
+    .. note:: Internally, the value of this setting determines whether the
+              provided South migrations are used; as well as the `managed`
+              option for the `FileNode` and `SimpleFileNode` models, which,
+              if `False`, hides them from South and `syncdb`. 
+
+              This helps prevent the database from being polluted by the
+              extra tables that would be generated for those models.
+"""
+
+
+MEDIA_TREE_STORAGE = getattr(settings, 'MEDIA_TREE_STORAGE', None)
+""" File storage class to be used for any file-related operations when dealing
+    with media files.
+
+    This is not set by default, meaning that Django's ```DEFAULT_FILE_STORAGE``
+    <https://docs.djangoproject.com/en/dev/ref/settings/#default-file-storage>`_
+    will be used. Please refer to the relevant Django documentation on `file
+    storage <https://docs.djangoproject.com/en/dev/ref/files/storage/#module-django.core.files.storage>`_.
 """
 
 MEDIA_TREE_MEDIA_BACKENDS = getattr(settings, 'MEDIA_TREE_MEDIA_BACKENDS', ())
-"""
-A tuple of media backends for thumbnail generation and other media-related
-tasks.
+""" A tuple of media backends for thumbnail generation and other media-related
+    tasks.
 
-Currently, the only supported backend is
-``media_tree.contrib.media_backends.easy_thumbnails.EasyThumbnailsBackend``,
-which depends on ``easy_thumbnails`` to be installed. Please refer to
-:ref:`media-backends` for more information.
+    Currently, the only supported backend is
+    ``media_tree.contrib.media_backends.easy_thumbnails.EasyThumbnailsBackend``,
+    which depends on ``easy_thumbnails`` to be installed. Please refer to
+    :ref:`media-backends` for more information.
 """
 
 MEDIA_TREE_MEDIA_BACKEND_DEBUG = getattr(settings,
     'MEDIA_TREE_MEDIA_BACKEND_DEBUG', settings.DEBUG)
 """
-Specifies whether exceptions caused by media backends, such as
-``ThumbnailError``, should be raised or silently ignored.
+    Specifies whether exceptions caused by media backends, such as
+    ``ThumbnailError``, should be raised or silently ignored.
 """
 
 MEDIA_TREE_LIST_DISPLAY = getattr(settings, 'MEDIA_TREE_LIST_DISPLAY',
     ('browse_controls', 'size_formatted', 'extension', 'resolution_formatted',
     'get_descendant_count_display', 'modified', 'modified_by', 'metadata_check',
     'position', 'node_tools'))
-"""
-A tuple containing the columns that should be displayed in the
-``FileNodeAdmin``. Note that the ``browse_controls`` column is necessary for the
-admin to function properly.
+""" A tuple containing the columns that should be displayed in the
+    ``FileNodeAdmin``. Note that the ``browse_controls`` column is necessary for the
+    admin to function properly.
 """
 
 MEDIA_TREE_LIST_FILTER = getattr(settings, 'MEDIA_TREE_LIST_FILTER',
     ('media_type', 'extension', 'has_metadata'))
-"""
-A tuple containing the fields that nodes can be filtered by in the
-``FileNodeAdmin``.
+""" A tuple containing the fields that nodes can be filtered by in the
+    ``FileNodeAdmin``.
 """
 
 #MEDIA_TREE_LIST_DISPLAY_LINKS = ('name',)
@@ -117,23 +140,24 @@ Default::
 
 """
 
-MEDIA_TREE_ALLOWED_FILE_TYPES = getattr(settings, 'MEDIA_TREE_ALLOWED_FILE_TYPES', (
-    'aac', 'ace', 'ai', 'aiff', 'avi', 'bmp', 'dir', 'doc', 'docx', 'dmg',
-    'eps', 'fla', 'flv', 'gif', 'gz', 'hqx', 'htm', 'html', 'ico', 'indd',
-    'inx', 'jpg', 'jar', 'jpeg', 'key', 'md', 'mov', 'mp3', 'mp4', 'mpc', 'mkv',
-    'mpg', 'mpeg', 'numbers', 'ogg', 'odg', 'odf', 'odp', 'ods', 'odt', 'otf',
-    'pages', 'pdf', 'png', 'pps', 'ppsx', 'ps', 'psd', 'rar', 'rm', 'rst', 'rtf',
-    'sit', 'swf', 'tar', 'tga', 'tif', 'tiff', 'ttf', 'txt', 'wav', 'wma',
-    'wmv', 'xls', 'xlsx', 'xml', 'zip'
-))
-"""
-A whitelist of file extensions that can be uploaded. By default, this is a
-comprehensive list of many common media file extensions that shouldn't pose a
-security risk.
+MEDIA_TREE_ALLOWED_FILE_TYPES = getattr(
+    settings,
+    'MEDIA_TREE_ALLOWED_FILE_TYPES',
+    ('aac', 'ace', 'ai', 'aiff', 'avi', 'bmp', 'dir', 'doc', 'docx', 'dmg',
+     'eps', 'fla', 'flv', 'gif', 'gz', 'hqx', 'htm', 'html', 'ico', 'indd',
+     'inx', 'jpg', 'jar', 'jpeg', 'key', 'md', 'mov', 'mp3', 'mp4', 'mpc',
+     'mkv', 'mpg', 'mpeg', 'numbers', 'ogg', 'odg', 'odf', 'odp', 'ods', 'odt',
+     'otf', 'pages', 'pdf', 'png', 'pps', 'ppsx', 'ps', 'psd', 'rar', 'rm',
+     'rst', 'rtf', 'sit', 'swf', 'tar', 'tga', 'tif', 'tiff', 'ttf', 'txt',
+     'wav', 'wma', 'wmv', 'xls', 'xlsx', 'xml', 'zip' ))
+""" A whitelist of file extensions that can be uploaded. By default, this is a
+    comprehensive list of many common media file extensions that shouldn't
+    pose a security risk.
 
-.. Warning::
-   Be careful when adding potentially unsafe file extensions to this setting,
-   such as executables or scripts, as this possibly opens a door to attackers.
+    .. Warning::
+       Be careful when adding potentially unsafe file extensions to this
+       setting, such as executables or scripts, as this possibly opens a door
+       to attackers.
 """
 
 MEDIA_TREE_THUMBNAIL_EXTENSIONS = getattr(settings,
