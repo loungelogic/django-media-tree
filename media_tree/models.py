@@ -6,13 +6,7 @@ from media_tree.utils.staticfiles import get_icon_finders
 from media_tree.utils import get_media_storage
 from media_tree.utils.filenode import get_file_link
 
-try:
-    from mptt.models import MPTTModel as ModelBase
-except ImportError:
-    # Legacy mptt support
-    import mptt
-    from django.db.models import Model as ModelBase
-
+import mptt
 from mptt.models import TreeForeignKey
 from mptt.managers import TreeManager
 
@@ -104,7 +98,7 @@ class FileNodeManager(models.Manager):
             *args, **kwargs)
 
 
-class BaseNode(ModelBase):
+class BaseNode(models.Model):
     """ A stripped-down abstract base class defining the functionality
         needed to store a file in a tree-like structure. """
 
@@ -125,9 +119,6 @@ class BaseNode(ModelBase):
 
     # Managers
 
-    tree = TreeManager()
-    """ MPTT tree manager """
-
     objects = FileNodeManager()
     """ An instance of the :class:`FileNodeManager` class, providing methods
         for retrieving ``FileNode`` objects by their full node path. """
@@ -138,9 +129,8 @@ class BaseNode(ModelBase):
                             upload_to=app_settings.MEDIA_TREE_UPLOAD_SUBDIR)
     """ The actual media file. """
 
-    parent = models.ForeignKey(
-        'self', verbose_name=_('folder'), related_name='children',
-        null=True, blank=True)
+    parent = TreeForeignKey('self', verbose_name=_('folder'),
+                            related_name='children', null=True, blank=True)
     """ The parent (folder) object of the node. """
     
     # Methods
@@ -241,7 +231,7 @@ class BaseNode(ModelBase):
 
         
 
-class FolderMixin(object):
+class FolderMixin(models.Model):
     """ A mixin that defines the difference between a file and a folder,
         allowing files to be nested inside folders and not other files. """
 
@@ -354,44 +344,48 @@ class FolderMixin(object):
         return self.node_type == FileNode.FILE
 
 
-class SimpleFileNode(FolderMixin, BaseNode):
-    """ Each ``FileNode`` instance represents a node in the media object tree,
-        that is to say a “file” or “folder”. Accordingly, their ``node_type``
-        attribute can either be ``media_types.FOLDER``, meaning that they may
-        have child nodes, or ``FileNode.FILE``, meaning that they are
-        associated to media files in storage and are storing metadata about
-        those files.
+# class SimpleFileNode(FolderMixin, BaseNode):
+#     """ Each ``FileNode`` instance represents a node in the media object tree,
+#         that is to say a “file” or “folder”. Accordingly, their ``node_type``
+#         attribute can either be ``media_types.FOLDER``, meaning that they may
+#         have child nodes, or ``FileNode.FILE``, meaning that they are
+#         associated to media files in storage and are storing metadata about
+#         those files.
 
-        .. Note::
-           Since ``FileNode`` is a child class of ``MPTTModel``, it inherits
-           many methods that facilitate queries and data manipulation when
-           working with trees.
+#         .. Note::
+#            Since ``FileNode`` is a child class of ``MPTTModel``, it inherits
+#            many methods that facilitate queries and data manipulation when
+#            working with trees.
 
-        You can access the actual media associated to a ``FileNode`` model
-        instance  using the following fields:
+#         You can access the actual media associated to a ``FileNode`` model
+#         instance  using the following fields:
 
-        .. role:: descname(literal)
-           :class: descname 
+#         .. role:: descname(literal)
+#            :class: descname 
 
-        :descname:`file`
-            The actual media file
+#         :descname:`file`
+#             The actual media file
 
-        :descname:`preview_file`
-            An optional image file that will be used for previews. This is
-            useful  for visual media that PIL cannot read, such as video files.
+#         :descname:`preview_file`
+#             An optional image file that will be used for previews. This is
+#             useful  for visual media that PIL cannot read, such as video files.
 
-        These fields are of the class ``FileField``. Please see
-        :ref:`configuration` for information on how to configure storage and
-        media backend classes. By default, media files are stored in a
-        subfolder ``uploads`` under your media root. """
+#         These fields are of the class ``FileField``. Please see
+#         :ref:`configuration` for information on how to configure storage and
+#         media backend classes. By default, media files are stored in a
+#         subfolder ``uploads`` under your media root. """
+
+#     class Meta:
+#         managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.SimpleFileNode'
+#         verbose_name = _('file node')
+#         verbose_name_plural = _('file node')
+
+
+class MetadataMixin(models.Model):
+    """ A mixin containing a comprehensive set of metadata fields. """
 
     class Meta:
-        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.SimpleFileNode'
-        verbose_name = _('file node')
-        verbose_name_plural = _('file node')
-
-
-class MetadataMixin(object):
+        abstract = True
 
     # Managers    
 
@@ -499,7 +493,7 @@ class MetadataMixin(object):
 
         for field, _ in self._meta.get_fields_with_model():
             if field.name == 'preview_file':
-                field.rel.storage = self.STORAGE
+                field.storage = self.STORAGE
 
         return ret
 
@@ -623,7 +617,11 @@ class MetadataMixin(object):
         return self.name
 
 
-class FileInfoMixin(object):
+class FileInfoMixin(models.Model):
+
+    class Meta:
+        abstract = True
+
     class MPTTMeta:
         order_insertion_by = ['name']
 
@@ -718,7 +716,10 @@ class FileInfoMixin(object):
             self.file.name = str(uuid.uuid4()) + '.' + self.extension
 
 
-class ImageMixin(object):
+class ImageMixin(models.Model):
+
+    class Meta:
+        abstract = True
 
     # Fields 
 
@@ -760,12 +761,19 @@ class ImageMixin(object):
                     self.__class__.mimetype_to_media_type(self.name)
 
 
-class PositionMixin(object):
+class PositionMixin(models.Model):
+
+    class Meta:
+        abstract = True
+
     position = models.IntegerField(_('position'), default=0)
     """ Position of the file among its siblings, for manual ordering """
 
 
-class LinkMixin(object):
+class LinkMixin(models.Model):
+    class Meta:
+        abstract = True
+
     @property
     def link(self):
         return getattr(self, 'link_obj', None)
@@ -779,7 +787,10 @@ class LinkMixin(object):
         del self.link_obj
 
 
-class AdminMixin(object):
+class AdminMixin(models.Model):
+    class Meta:
+        abstract = True
+
     def get_admin_url(self, query_params=None, use_path=False):
         """ Returns the URL for viewing a FileNode in the admin. """
 
@@ -821,18 +832,8 @@ class AdminMixin(object):
 class FileNode(MetadataMixin, FileInfoMixin, ImageMixin, PositionMixin,
                FolderMixin, LinkMixin, AdminMixin, BaseNode):
     class Meta:
-        abstract = False
         managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
-
-
-# Legacy mptt support
-if ModelBase == models.Model:
-    FileNode._mptt_meta = FileNode._meta
-    try:
-        mptt.register(FileNode,
-            order_insertion_by=FileNode.MPTTMeta.order_insertion_by)
-    except mptt.AlreadyRegistered:
-        pass
+mptt.register(FileNode)
 
 
 from media_tree.utils import autodiscover_media_extensions

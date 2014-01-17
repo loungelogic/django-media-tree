@@ -9,6 +9,7 @@ from django.utils.translation import ugettext as _
 from django.utils.encoding import smart_unicode
 from django.conf import settings
 
+
 LEVEL_INDICATOR = app_settings.MEDIA_TREE_LEVEL_INDICATOR
 
 
@@ -84,15 +85,19 @@ class FileNodeForeignKey(models.ForeignKey):
     """
     A model field for selecting a ``FileNode`` object.
 
-    Its constructor takes the following arguments that are relevant when selecting ``FileNode`` objects: 
+    Its constructor takes the following arguments that are relevant when
+    selecting ``FileNode`` objects: 
 
-    :param allowed_node_types: A list of node types that are allowed and will validate, e.g. ``(FileNode.FILE,)`` if the user should only be able to select files, but not folders
-    :param allowed_media_types: A list of media types that are allowed and will validate, e.g. ``(media_types.DOCUMENT,)``
-    :param allowed_extensions: A list of file extensions that are allowed and will validate, e.g. ``("jpg", "jpeg")``
+    :param allowed_node_types: A list of node types that are allowed and will
+    validate, e.g. ``(FileNode.FILE,)`` if the user should only be able to
+    select files, but not folders :param allowed_media_types: A list of media
+    types that are allowed and will validate, e.g. ``(media_types.DOCUMENT,)``
+    :param allowed_extensions: A list of file extensions that are allowed and
+    will validate, e.g. ``("jpg", "jpeg")``
 
-    Since this class is a subclass of ``models.ForeignKey``, you can also pass it that class' 
-    parameters, such as ``limit_choices_to`` if you would like to restrict the objects that will
-    be available for selection.
+    Since this class is a subclass of ``models.ForeignKey``, you can also pass
+    it that class' parameters, such as ``limit_choices_to`` if you would like
+    to restrict the objects that will be available for selection.
     """
 
     def __init__(self, allowed_node_types=None, allowed_media_types=None,
@@ -103,6 +108,7 @@ class FileNodeForeignKey(models.ForeignKey):
         self.allowed_extensions = allowed_extensions
         self.level_indicator = level_indicator
         super(FileNodeForeignKey, self).__init__(FileNode, *args, **kwargs)
+        # print self.rel
 
     def formfield(self, **kwargs):
         defaults = {
