@@ -9,10 +9,10 @@ MEDIA_TREE_MODEL = \
 """ Points to the model to be used by ``media_tree`` to represent uploaded
     files.
 
-    This defaults to ``'media_tree.FileNode'``, which includes a number of
-    fields for storing file info and metadata. Alternatively, you could use
-    the bare-bones ``'media_tree.SimpleFileNode'`` model, which contains no
-    metadata at all; however, admin support for it is not yet implemented.
+    This defaults to ``'media_tree.FileNode'`` -- a model which includes a
+    number of fields for storing file info and metadata. Alternatively, you
+    could set this to ``'media_tree.SimpleFileNode'``, which selects a
+    bare-bones model containing no metadata at all.
 
     ``media_tree`` recognizes that your use case is likely to require storing
     a different set of metadata altogether; the base classes and mixins

@@ -386,6 +386,7 @@ class SimpleFileNode(FolderMixin, BaseNode):
         subfolder ``uploads`` under your media root. """
 
     class Meta:
+        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.SimpleFileNode'
         verbose_name = _('file node')
         verbose_name_plural = _('file node')
 
@@ -625,7 +626,7 @@ class MetadataMixin(object):
 class FileInfoMixin(object):
     class MPTTMeta:
         order_insertion_by = ['name']
-        
+
     name = models.CharField(_('name'), max_length=255, null=True)
     """ Name of the file or folder """
 
@@ -821,6 +822,7 @@ class FileNode(MetadataMixin, FileInfoMixin, ImageMixin, PositionMixin,
                FolderMixin, LinkMixin, AdminMixin, BaseNode):
     class Meta:
         abstract = False
+        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
 
 
 # Legacy mptt support
