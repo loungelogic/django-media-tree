@@ -453,7 +453,7 @@ class MetadataMixin(models.Model):
     # Methods
 
     def __init__(self, *args, **kwargs):
-        ret = super(MetadataMixin, self).__init__(self, *args, **kwargs)
+        ret = super(MetadataMixin, self).__init__(*args, **kwargs)
 
         for field, _ in self._meta.get_fields_with_model():
             if field.name == 'preview_file':
@@ -839,6 +839,7 @@ class FileNode(MetadataMixin, FileInfoMixin, ImageMixin, PositionMixin,
                FolderMixin, LinkMixin, AdminMixin, BaseNode):
     class Meta:
         managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
+        
 mptt.register(FileNode)
 
 
