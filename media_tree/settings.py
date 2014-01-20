@@ -1,7 +1,7 @@
 from django.conf import settings
+from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 from media_tree import media_types
-from django.utils.datastructures import SortedDict
 
 
 MEDIA_TREE_MODEL = \

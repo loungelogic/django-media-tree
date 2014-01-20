@@ -1,7 +1,5 @@
-raise NotImplementedError('SorlThumbnailBackend is experimental and '
-                          'currently not officially supported')
-
 from django.core.exceptions import ImproperlyConfigured
+from media_tree import media_types 
 from media_tree.media_backends import MediaBackend, ThumbnailError
 from sorl.thumbnail import get_thumbnail
 
@@ -27,3 +25,9 @@ class SorlThumbnailBackend(MediaBackend):
         except Exception as inst:
             raise ThumbnailError(inst)
         return thumbnail
+
+    @staticmethod
+    def get_valid_thumbnail_options():
+        return set(['crop', 'upscale', 'quality', 'progressive', 'orientation',
+                    'format', 'colorspace', 'padding', 'padding_color',
+                    'options'])

@@ -1,8 +1,10 @@
-from media_tree import settings as app_settings
-from media_tree.utils import get_module_attr
-from django.core.exceptions import ImproperlyConfigured
-from django.conf import settings
 import os
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.db import models
+from media_tree import settings as app_settings
+from media_tree.models import FileNode
+from media_tree.utils import get_module_attr
 
 
 class ThumbnailError(Exception):
@@ -40,7 +42,7 @@ def get_media_backend(fail_silently=True, handles_media_types=None,
         return False
     
     
-class MediaBackend:
+class MediaBackend(object):
     
     SUPPORTED_MEDIA_TYPES = None
     SUPPORTED_FILE_EXTENSIONS = None
@@ -72,8 +74,6 @@ class MediaBackend:
                                       '`get_cache_paths()` method.')
 
         paths = []
-        from media_tree.models import FileNode
-        from django.db import models
 
         for field in FileNode._meta.fields:
             can_upload = isinstance(field, models.FileField) \

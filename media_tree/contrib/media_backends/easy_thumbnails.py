@@ -1,24 +1,22 @@
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from media_tree import media_types
+from media_tree import settings as app_settings
 from media_tree.media_backends import MediaBackend, ThumbnailError
 from media_tree.utils import get_media_storage
-from media_tree import settings as app_settings
-from media_tree import media_types
-from easy_thumbnails.files import get_thumbnailer
 from easy_thumbnails import utils
-from django.conf import settings
+from easy_thumbnails.files import get_thumbnailer
 import os
 
 
 class EasyThumbnailsBackend(MediaBackend):
-    """
-    Media backend for easy_thumbnails support. 
-    """
+    """ Media backend which generates thumbnails using easy_thumbnails. """
 
     SUPPORTED_MEDIA_TYPES = (media_types.SUPPORTED_IMAGE,)
 
     @staticmethod
     def check_conf():
         if not 'easy_thumbnails' in settings.INSTALLED_APPS:
-            from django.core.exceptions import ImproperlyConfigured
             raise ImproperlyConfigured('`easy_thumbnails` is not in your '
                                        'INSTALLED_APPS.')
 
