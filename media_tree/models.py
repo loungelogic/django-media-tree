@@ -289,15 +289,22 @@ class FolderMixin(models.Model):
         return ret
 
     def pre_save(self):
-        """ Since this method breaks the inheritance chain upon
-            discovering a folder, it should be kept in mind that
-            FolderMixin should generally come after any other
-            folder-aware mixins (e.g. FileInfoMixin). """
+        """ Since this method breaks the inheritance chain if the node
+            is a folder, FolderMixin will most likely need to precede any
+            other mixins that implement this method. """
+
         if self.node_type == media_types.FOLDER:
             # Admin asserts that folder name is unique under parent.
             # For other inserts:
             self.make_name_unique_numbered(self.name)
-            return  # Cancel further processing for folders
+
+            # Work together with MetadataMixin and FileInfoMixin
+            if hasattr(self, 'prepare_metadata'):
+                self.prepare_metadata()
+                
+            return
+
+        super(FolderMixin, self).pre_save()
 
     def get_folder_tree(self):
         return self._tree_manager.all().filter(node_type=media_types.FOLDER)
@@ -328,15 +335,6 @@ class FolderMixin(models.Model):
         else:
             return ''
     get_descendant_count_display.short_description = _('Items')
-
-    def has_metadata_including_descendants(self):
-        if self.node_type == media_types.FOLDER:
-            count = self.get_descendants().filter(has_metadata=False).count()
-            return count == 0
-        else:
-            return self.has_metadata
-    has_metadata_including_descendants.short_description = _('Metadata')
-    has_metadata_including_descendants.boolean = True
 
     def is_folder(self):
         return self.node_type == media_types.FOLDER
@@ -490,9 +488,17 @@ class MetadataMixin(models.Model):
         else:
             return self.get_icon_file(default_name=default_name)
 
-    def pre_save(self):
+    def prepare_metadata(self):
+        needs_folder_info = (hasattr(self, 'node_type')
+                             and self.node_type == FileNode.FOLDER
+                             and hasattr(self, 'media_type'))
+        if needs_folder_info:
+            self.media_type = FileNode.FOLDER
         self.slug = slugify(self.name)
         self.has_metadata = self.check_minimal_metadata()
+
+    def pre_save(self):
+        self.prepare_metadata()
         super(MetadataMixin, self).pre_save()
 
     def check_minimal_metadata(self):
@@ -535,6 +541,15 @@ class MetadataMixin(models.Model):
         
         return self.get_metadata_display(escape=False)
     get_metadata_display_unescaped.allow_tags = True
+
+    def has_metadata_including_descendants(self):
+        if self.node_type == media_types.FOLDER:
+            count = self.get_descendants().filter(has_metadata=False).count()
+            return count == 0
+        else:
+            return self.has_metadata
+    has_metadata_including_descendants.short_description = _('Metadata')
+    has_metadata_including_descendants.boolean = True
 
     def get_caption_formatted(
         self, field_formats=app_settings.MEDIA_TREE_METADATA_FORMATS,
@@ -659,9 +674,6 @@ class FileInfoMixin(models.Model):
         return media_types.FILE
 
     def pre_save(self):
-        if self.node_type == media_types.FOLDER:
-            self.media_type = media_types.FOLDER
-           
         if self.has_changed():
             self.name = os.path.basename(self.file.name)
 
@@ -680,7 +692,7 @@ class FileInfoMixin(models.Model):
             # inconvenient for downloadable files
             self.file.name = str(uuid.uuid4()) + '.' + self.extension
 
-        super(MetadataMixin, self).pre_save()
+        super(FileInfoMixin, self).pre_save()
 
 
 class ImageMixin(models.Model):
@@ -727,7 +739,7 @@ class ImageMixin(models.Model):
                 self.media_type = \
                     self.__class__.mimetype_to_media_type(self.name)
 
-        super(MetadataMixin, self).pre_save()
+        super(ImageMixin, self).pre_save()
 
 
 class PositionMixin(models.Model):
@@ -835,8 +847,8 @@ class AdminMixin(models.Model):
 #         verbose_name_plural = _('file node')
 
 
-class FileNode(MetadataMixin, FileInfoMixin, ImageMixin, PositionMixin,
-               FolderMixin, LinkMixin, AdminMixin, BaseNode):
+class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
+               PositionMixin, LinkMixin, AdminMixin, BaseNode):
     class Meta:
         managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
         
