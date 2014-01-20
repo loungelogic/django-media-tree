@@ -38,7 +38,8 @@ MEDIA_TREE_STORAGE = getattr(settings, 'MEDIA_TREE_STORAGE', None)
     This is not set by default, meaning that Django's ```DEFAULT_FILE_STORAGE``
     <https://docs.djangoproject.com/en/dev/ref/settings/#default-file-storage>`_
     will be used. Please refer to the relevant Django documentation on `file
-    storage <https://docs.djangoproject.com/en/dev/ref/files/storage/#module-django.core.files.storage>`_.
+    storage <https://docs.djangoproject.com/en/dev/ref/files/storage/\
+#module-django.core.files.storage>`_.
 """
 
 MEDIA_TREE_MEDIA_BACKENDS = getattr(settings, 'MEDIA_TREE_MEDIA_BACKENDS', ())
@@ -46,7 +47,7 @@ MEDIA_TREE_MEDIA_BACKENDS = getattr(settings, 'MEDIA_TREE_MEDIA_BACKENDS', ())
     tasks.
 
     Currently, the only supported backend is
-    ``media_tree.contrib.media_backends.easy_thumbnails.EasyThumbnailsBackend``,
+    ``media_tree.contrib.media_backends.easy_thumbnails.\EasyThumbnailsBackend``,
     which depends on ``easy_thumbnails`` to be installed. Please refer to
     :ref:`media-backends` for more information.
 """
@@ -63,8 +64,8 @@ MEDIA_TREE_LIST_DISPLAY = getattr(settings, 'MEDIA_TREE_LIST_DISPLAY',
     'get_descendant_count_display', 'modified', 'modified_by', 'metadata_check',
     'position', 'node_tools'))
 """ A tuple containing the columns that should be displayed in the
-    ``FileNodeAdmin``. Note that the ``browse_controls`` column is necessary for the
-    admin to function properly.
+    ``FileNodeAdmin``. Note that the ``browse_controls`` column is necessary
+    for the admin to function properly.
 """
 
 MEDIA_TREE_LIST_FILTER = getattr(settings, 'MEDIA_TREE_LIST_FILTER',
@@ -125,8 +126,8 @@ MEDIA_TREE_THUMBNAIL_SIZES.update({
 MEDIA_TREE_THUMBNAIL_SIZES.update(getattr(settings,
     'MEDIA_TREE_THUMBNAIL_SIZES', {}))
 """
-A dictionary of default thumbnail sizes. You can pass the dictionary key to the
-``thumbnail`` templatetag instead of a numeric size.
+A dictionary of default thumbnail sizes. You can pass the dictionary key
+to the ``thumbnail`` templatetag instead of a numeric size.
 
 Default::
 
@@ -201,9 +202,7 @@ MEDIA_TREE_ORDERING_DEFAULT = ['name']
 List of mimetypes not convered by the `mimetypes` Python module (for instance,
     .flv is not guessed by `guess_mimetype`.)
 """
-MEDIA_TREE_EXT_MIMETYPE_MAP = {
-    'flv': 'video/x-flv',
-}
+MEDIA_TREE_EXT_MIMETYPE_MAP = {'flv': 'video/x-flv',}
 
 MEDIA_TREE_MPTT_ADMIN_LEVEL_INDENT = getattr(settings,
     'MEDIA_TREE_MPTT_ADMIN_LEVEL_INDENT', 25)
@@ -218,8 +217,7 @@ MEDIA_TREE_MIMETYPE_CONTENT_TYPE_MAP = {
     'audio': media_types.AUDIO,
     'image': media_types.IMAGE,
     'text': media_types.TEXT,
-    'video': media_types.VIDEO,
-}
+    'video': media_types.VIDEO}
 
 MEDIA_TREE_CONTENT_TYPE_CHOICES = (
     (media_types.FOLDER, _('folder')),
@@ -230,8 +228,7 @@ MEDIA_TREE_CONTENT_TYPE_CHOICES = (
     (media_types.SUPPORTED_IMAGE, _('web image')),
     (media_types.TEXT, _('text')),
     (media_types.VIDEO, _('video')),
-    (media_types.FILE, _('other')),
-)
+    (media_types.FILE, _('other')))
 
 MEDIA_TREE_CONTENT_TYPES = dict(MEDIA_TREE_CONTENT_TYPE_CHOICES)
 
