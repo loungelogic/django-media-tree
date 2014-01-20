@@ -301,7 +301,7 @@ class FolderMixin(models.Model):
             # Work together with MetadataMixin and FileInfoMixin
             if hasattr(self, 'prepare_metadata'):
                 self.prepare_metadata()
-                
+
             return
 
         super(FolderMixin, self).pre_save()
@@ -851,6 +851,12 @@ class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin,
                PositionMixin, LinkMixin, AdminMixin, BaseNode):
     class Meta:
         managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
+
+    def __init__(self, *args, **kwargs):
+        super(FileNode, self).__init__(*args, **kwargs)
+
+        # HACK: Override default manager
+        self.__class__._default_manager = self.__class__.objects
         
 mptt.register(FileNode)
 
