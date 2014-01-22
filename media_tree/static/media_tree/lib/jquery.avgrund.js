@@ -93,6 +93,7 @@
 
 				body.append('<div class="avgrund-popin ' + options.holderClass + '">' + template + '</div>');
 
+
 				if (options.showClose) {
 					$('.avgrund-popin').append('<a href="#" class="avgrund-close">' + options.showCloseText + '</a>');
 				}
