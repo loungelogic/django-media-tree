@@ -7,6 +7,16 @@ from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
                     PositionMixin, LinkMixin, AdminMixin
 
 
+__all__ = ['SimpleFileNode', 'FileNode']
+
+
+class SimpleFileNode(FolderMixin, BaseNode):
+    class Meta:
+        app_label = 'media_tree'
+        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.SimpleFileNode'
+SimpleFileNode._default_manager = SimpleFileNode.objects
+
+
 class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
                PositionMixin, LinkMixin, AdminMixin, BaseNode):
     """ Each ``FileNode`` instance represents a node in the media object tree,
