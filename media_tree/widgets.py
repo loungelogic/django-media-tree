@@ -14,17 +14,22 @@ THUMBNAIL_SIZE = app_settings.MEDIA_TREE_THUMBNAIL_SIZES['default']
 
 class FileNodeForeignKeyRawIdWidget(ForeignKeyRawIdWidget):
 
-    # TODO: Bug: When popup is dismissed, label for value is currently not replaced with new label (although value is)
+    # TODO: Bug: When popup is dismissed, label for value is currently
+    # not replaced with new label (although value is)
 
     input_type = 'hidden'
 
     def label_for_value(self, value):
         key = self.rel.get_related_field().name
         try:
-            obj = self.rel.to._default_manager.using(self.db).get(**{key: value})
-            preview = render_to_string('media_tree/filenode/includes/preview.html', 
+            obj = self.rel.to._default_manager \
+                      .using(self.db).get(**{key: value})
+            preview = render_to_string(
+                'media_tree/filenode/includes/preview.html', 
                 {'node': obj, 'preview_file': obj.get_preview_file()})
-            return '%s %s' % (preview, super(FileNodeForeignKeyRawIdWidget, self).label_for_value(value))
+            return '%s %s' % (preview,
+                              super(FileNodeForeignKeyRawIdWidget, self) \
+                                  .label_for_value(value))
         except (ValueError, self.rel.to.DoesNotExist):
             return ''
 
