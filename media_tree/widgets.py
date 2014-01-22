@@ -94,9 +94,15 @@ WIDGET = ('{0}'
           '<div>{1}</div> '
           '<ul class="object-tools"><li>{2}</li><li>{3}</li></ul>')
 
+
 class MediaPopupWidget(ThumbnailMixin, HiddenInput):
     class Media:
         js = ('media_tree/js/media_popup.js',)
+
+    def __init__(self, *args, **kwargs):
+        obj_pk = kwargs.pop('obj_pk', None)
+        self.for_param = ('?for=' + str(obj_pk)) if obj_pk is not None else ''
+        return super(MediaPopupWidget, self).__init__(*args, **kwargs)
 
     def get_thumbnail_source(self, value):
         return FileNode.objects.get(pk=value).file
@@ -105,18 +111,19 @@ class MediaPopupWidget(ThumbnailMixin, HiddenInput):
         # Render actual input tag - an <input type="hidden">
         # which will be manipulated via JS.
         input_tag = super(MediaPopupWidget, self).render(name, value, attrs)
-        print "->", attrs
 
         value = FileNode.objects.get(pk=value)
         selected_title = value.file.name
         media_title = format_html("<strong>{0}</strong>", selected_title)
 
-        btn_attrs = {'href': reverse('admin:media_tree_filenode_changelist'),
+        url = reverse('admin:media_tree_filenode_changelist') + self.for_param
+        btn_attrs = {'href': url,
                      'class': 'mediatree-btn-select',
                      'id': attrs['id'] + '-select'}
         button_select = format_html(BTN, flatatt(btn_attrs), _("Select media"))
 
-        btn_attrs = {'href': reverse('admin:media_tree_filenode_add'),
+        url = reverse('admin:media_tree_filenode_add') + self.for_param
+        btn_attrs = {'href': url,
                      'class': 'mediatree-btn-upload',
                      'id': attrs['id'] + '-upload'}
         button_upload = format_html(BTN, flatatt(btn_attrs), _("Upload media"))
