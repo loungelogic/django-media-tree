@@ -855,7 +855,7 @@ class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin,
     def __init__(self, *args, **kwargs):
         super(FileNode, self).__init__(*args, **kwargs)
 
-        # HACK: Override default manager
+# HACK: Override default manager
 FileNode._default_manager = FileNode.objects
         
 mptt.register(FileNode)

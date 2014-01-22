@@ -90,14 +90,15 @@ class MediaThumbWidget(ThumbnailMixin, Select):
 
 
 BTN = '<a{0}>{1}</a>'
-WIDGET = ('{0}'
-          '<div>{1}</div> '
+WIDGET = ('{0} <div>{1}</div> '
           '<ul class="object-tools"><li>{2}</li><li>{3}</li></ul>')
 
 
 class MediaPopupWidget(ThumbnailMixin, HiddenInput):
     class Media:
-        js = ('media_tree/js/media_popup.js',)
+        js = ('media_tree/lib/jquery.avgrund.js',
+              'media_tree/js/media_popup.js',)
+        css = {'all': ('media_tree/css/avgrund.css',)}
 
     def __init__(self, *args, **kwargs):
         obj_pk = kwargs.pop('obj_pk', None)
@@ -116,14 +117,14 @@ class MediaPopupWidget(ThumbnailMixin, HiddenInput):
         selected_title = value.file.name
         media_title = format_html("<strong>{0}</strong>", selected_title)
 
-        url = reverse('admin:media_tree_filenode_changelist') + self.for_param
-        btn_attrs = {'href': url,
+        url = reverse('admin:media_tree_filenode_changelist')
+        btn_attrs = {'href': url + self.for_param,
                      'class': 'mediatree-btn-select',
                      'id': attrs['id'] + '-select'}
         button_select = format_html(BTN, flatatt(btn_attrs), _("Select media"))
 
-        url = reverse('admin:media_tree_filenode_add') + self.for_param
-        btn_attrs = {'href': url,
+        url = reverse('admin:media_tree_filenode_add')
+        btn_attrs = {'href': url + self.for_param,
                      'class': 'mediatree-btn-upload',
                      'id': attrs['id'] + '-upload'}
         button_upload = format_html(BTN, flatatt(btn_attrs), _("Upload media"))
