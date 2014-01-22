@@ -1,15 +1,15 @@
-from media_tree import settings as app_settings
-from django.contrib.admin.widgets import AdminFileWidget
-from media_tree import media_types
-from media_tree.media_backends import get_media_backend, ThumbnailError
-from django.contrib.admin.widgets import ForeignKeyRawIdWidget
-from django.utils.html import escape
-from django.template.loader import render_to_string
-from django.utils.safestring import mark_safe
 import os
+from django.forms.widgets import Select
+from django.contrib.admin.widgets import AdminFileWidget, ForeignKeyRawIdWidget
+from django.template.loader import render_to_string
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from media_tree import settings as app_settings, media_types
+from media_tree.models import FileNode
+from media_tree.media_backends import get_media_backend, ThumbnailError
 
 THUMBNAIL_EXTENSIONS = app_settings.MEDIA_TREE_THUMBNAIL_EXTENSIONS
-THUMBNAIL_SIZE = app_settings.MEDIA_TREE_THUMBNAIL_SIZES['large']
+THUMBNAIL_SIZE = app_settings.MEDIA_TREE_THUMBNAIL_SIZES['default']
 
 
 class FileNodeForeignKeyRawIdWidget(ForeignKeyRawIdWidget):
@@ -29,26 +29,54 @@ class FileNodeForeignKeyRawIdWidget(ForeignKeyRawIdWidget):
             return ''
 
 
-class AdminThumbWidget(AdminFileWidget):
-    """
-    A Image FileField Widget that shows a thumbnail if it has one.
-    """
+class ThumbnailMixin(object):
+    def get_thumbnail_source(self, value):
+        raise NotImplementedError
+
+    def render(self, name, value, attrs=None):
+        output = super(ThumbnailMixin, self).render(name, value, attrs)
+        media_backend = get_media_backend(
+            fail_silently=True, handles_media_types=(
+                media_types.SUPPORTED_IMAGE,))
+        value = self.get_thumbnail_source(value)
+
+        if media_backend and value:
+            try:
+                thumb_extension = \
+                    os.path.splitext(value.name)[1].lstrip('.').lower()
+                if not thumb_extension in THUMBNAIL_EXTENSIONS:
+                    thumb_extension = None
+
+                thumb = media_backend.get_thumbnail(
+                    value, {'size': THUMBNAIL_SIZE})
+
+                if thumb:
+                    thumb_html = \
+                        u'<img src="%s" alt="%s" width="%i" height="%i" />' % (
+                            thumb.url, os.path.basename(value.name),
+                            thumb.width, thumb.height) 
+                    output = u'<div><p><span class="thumbnail">%s</span></p>' \
+                              '<p>%s</p></div>' % (thumb_html, output)
+            
+            except ThumbnailError as inst:
+                pass
+
+        return mark_safe(output)
+
+
+class AdminThumbWidget(ThumbnailMixin, AdminFileWidget):
+    """ A Image FileField Widget that shows a thumbnail if it has one. """
+    
+    def get_thumbnail_source(self, value):
+        return value
+
     def __init__(self, attrs={}):
         super(AdminThumbWidget, self).__init__(attrs)
  
-    def render(self, name, value, attrs=None):
-        output = super(AdminThumbWidget, self).render(name, value, attrs)
-        media_backend = get_media_backend(fail_silently=True, handles_media_types=(
-            media_types.SUPPORTED_IMAGE,))
-        if media_backend and value and hasattr(value, "url"):
-            try:
-                thumb_extension = os.path.splitext(value.name)[1].lstrip('.').lower()
-                if not thumb_extension in THUMBNAIL_EXTENSIONS:
-                    thumb_extension = None
-                thumb = media_backend.get_thumbnail(value, {'size': THUMBNAIL_SIZE})
-                if thumb:
-                    thumb_html = u'<img src="%s" alt="%s" width="%i" height="%i" />' % (thumb.url, os.path.basename(value.name), thumb.width, thumb.height) 
-                    output = u'<div><p><span class="thumbnail">%s</span></p><p>%s</p></div>' % (thumb_html, output)
-            except ThumbnailError as inst:
-                pass
-        return mark_safe(output)
+
+
+class MediaThumbWidget(ThumbnailMixin, Select):
+    """ A ForeignKey Select Widget that shows a thumbnail if it has one. """
+    
+    def get_thumbnail_source(self, value):
+        return FileNode.objects.get(pk=value).file
