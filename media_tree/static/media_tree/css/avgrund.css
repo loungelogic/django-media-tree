@@ -55,9 +55,10 @@ body.avgrund-ready,
 	-ms-transition: 0.3s all ease-out;
 	-o-transition: 0.3s all ease-out;
 	transition: 0.3s all ease-out;
+
 }
 
-body.avgrund-active {
+body.avgrund-active {	
 	-webkit-transform: scale(0.9);
 	-moz-transform: scale(0.9);
 	-ms-transform: scale(0.9);

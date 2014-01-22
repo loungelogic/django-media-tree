@@ -32,9 +32,10 @@
 			onBlurContainer: '',
 			openOnEvent: true,
 			setEvent: 'click',
-			onLoad: false,
+			beforeLoad: false,
+			afterLoad: false,
 			onUnload: false,
-			template: '<p>This is test popin content!</p>'
+			template: ''
 		};
 
 		options = $.extend(defaults, options);
@@ -78,8 +79,8 @@
 			}
 
 			function activate () {
-				if (typeof options.onLoad === 'function') {
-					options.onLoad(self);
+				if (typeof options.beforeLoad === 'function') {
+					options.beforeLoad(self);
 				}
 
 				setTimeout(function() {
@@ -87,6 +88,7 @@
 				}, 100);
 
 				body.append('<div class="avgrund-popin ' + options.holderClass + '">' + template + '</div>');
+
 
 				if (options.showClose) {
 					$('.avgrund-popin').append('<a href="#" class="avgrund-close">' + options.showCloseText + '</a>');
@@ -98,6 +100,10 @@
 
 				body.bind('keyup', onDocumentKeyup)
 					.bind('click', onDocumentClick);
+
+				if (typeof options.afterLoad === 'function') {
+					options.afterLoad(self);
+				}
 			}
 
 			function deactivate () {
