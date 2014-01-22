@@ -86,7 +86,11 @@ class MediaThumbWidget(ThumbnailMixin, Select):
     """ A ForeignKey Select Widget that shows a thumbnail if it has one. """
     
     def get_thumbnail_source(self, value):
-        return FileNode.objects.get(pk=value).file
+        try:
+            source = FileNode.objects.get(pk=value).file
+        except FileNode.DoesNotExist:
+            source = None
+        return source
 
 
 BTN = '<a{0}>{1}</a>'
@@ -106,15 +110,24 @@ class MediaPopupWidget(ThumbnailMixin, HiddenInput):
         return super(MediaPopupWidget, self).__init__(*args, **kwargs)
 
     def get_thumbnail_source(self, value):
-        return FileNode.objects.get(pk=value).file
+        try:
+            source = FileNode.objects.get(pk=value).file
+        except FileNode.DoesNotExist:
+            source = None
+        return source
 
     def render(self, name, value, attrs=None):
         # Render actual input tag - an <input type="hidden">
         # which will be manipulated via JS.
         input_tag = super(MediaPopupWidget, self).render(name, value, attrs)
 
-        value = FileNode.objects.get(pk=value)
-        selected_title = value.file.name
+        try:
+            value = FileNode.objects.get(pk=value)
+            selected_title = value.file.name
+        except FileNode.DoesNotExist:
+            value = None
+            selected_title = None
+
         media_title = format_html("<strong>{0}</strong>", selected_title)
 
         url = reverse('admin:media_tree_filenode_changelist')

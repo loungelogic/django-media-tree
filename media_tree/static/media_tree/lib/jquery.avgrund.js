@@ -32,26 +32,31 @@
 			onBlurContainer: '',
 			openOnEvent: true,
 			setEvent: 'click',
-			onLoad: false,
+			beforeLoad: false,
+			afterLoad: false,
 			onUnload: false,
-			template: '<p>This is test popin content!</p>'
+			template: ''
 		};
 
 		options = $.extend(defaults, options);
 
 		return this.each(function() {
 			var self = $(this),
+				root = $('html'),
 				body = $('body'),
 				maxWidth = options.width,
 				maxHeight = options.height,
+				overlay = $('.avgrund-overlay').length ?
+					$('.avgrund-overlay') :
+					$('<div class="avgrund-overlay '+ options.overlayClass + '"></div>')
+						.appendTo($("body")),
 				template = typeof options.template === 'function' ?
 					options.template(self) :
 					options.template instanceof jQuery ?
 						options.template.html() :
 						options.template;
 
-			body.addClass('avgrund-ready');
-			body.append('<div class="avgrund-overlay ' + options.overlayClass + '"></div>');
+			root.addClass('avgrund-ready');
 
 			if (options.onBlurContainer !== '') {
 				$(options.onBlurContainer).addClass('avgrund-blur');
@@ -78,12 +83,12 @@
 			}
 
 			function activate () {
-				if (typeof options.onLoad === 'function') {
-					options.onLoad(self);
+				if (typeof options.beforeLoad === 'function') {
+					options.beforeLoad(self);
 				}
 
 				setTimeout(function() {
-					body.addClass('avgrund-active');
+					root.addClass('avgrund-active');
 				}, 100);
 
 				body.append('<div class="avgrund-popin ' + options.holderClass + '">' + template + '</div>');
@@ -96,13 +101,17 @@
 					$('.avgrund-popin').addClass('stack');
 				}
 
-				body.bind('keyup', onDocumentKeyup)
+				root.bind('keyup', onDocumentKeyup)
 					.bind('click', onDocumentClick);
+
+				if (typeof options.afterLoad === 'function') {
+					options.afterLoad(self);
+				}
 			}
 
 			function deactivate () {
-				body.unbind('keyup', onDocumentKeyup)
-					.unbind('click', onDocumentClick)
+				root.bind('keyup', onDocumentKeyup)
+					.bind('click', onDocumentClick)
 					.removeClass('avgrund-active');
 
 				setTimeout(function() {

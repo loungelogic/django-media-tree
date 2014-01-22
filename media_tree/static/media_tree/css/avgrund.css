@@ -9,8 +9,8 @@ html, body {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	width: 50%;
-	height: 50%;
+	width: 38%;
+	height: 62%;
 	margin: auto auto;
 
 	background: #fff;
@@ -41,7 +41,7 @@ html, body {
 	filter: alpha(opacity=0);
 }
 
-body.avgrund-ready,
+.avgrund-ready body,
 .avgrund-ready .avgrund-popin,
 .avgrund-ready .avgrund-overlay {
 	-webkit-transform-origin: 50% 50%;
@@ -57,7 +57,7 @@ body.avgrund-ready,
 	transition: 0.3s all ease-out;
 }
 
-body.avgrund-active {
+.avgrund-active body {	
 	-webkit-transform: scale(0.9);
 	-moz-transform: scale(0.9);
 	-ms-transform: scale(0.9);
@@ -71,11 +71,11 @@ body.avgrund-active {
 	opacity: 1;
 	filter: alpha(opacity=100);
 
-	-webkit-transform: scale(1.1);
-	-moz-transform: scale(1.1);
-	-ms-transform: scale(1.1);
-	-o-transform: scale(1.1);
-	transform: scale(1.1);
+	-webkit-transform: scale(1.11111);
+	-moz-transform: scale(1.11111);
+	-ms-transform: scale(1.11111);
+	-o-transform: scale(1.11111);
+	transform: scale(1.11111);
 }
 
 .avgrund-active .avgrund-overlay {
@@ -94,11 +94,11 @@ body.avgrund-active {
 }
 
 .avgrund-active .avgrund-popin.stack {
-	-webkit-transform: scale(1.1);
-	-moz-transform: scale(1.1);
-	-ms-transform: scale(1.1);
-	-o-transform: scale(1.1);
-	transform: scale(1.1);
+	-webkit-transform: scale(1.11111);
+	-moz-transform: scale(1.11111);
+	-ms-transform: scale(1.11111);
+	-o-transform: scale(1.11111);
+	transform: scale(1.11111);
 }
 
 .avgrund-active .avgrund-blur {
