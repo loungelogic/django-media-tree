@@ -1,9 +1,12 @@
 import os
-from django.forms.widgets import Select
+from django.core.urlresolvers import reverse
+from django.forms.widgets import Select, HiddenInput
+from django.forms.util import flatatt
 from django.contrib.admin.widgets import AdminFileWidget, ForeignKeyRawIdWidget
 from django.template.loader import render_to_string
-from django.utils.html import escape
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext as _
 from media_tree import settings as app_settings, media_types
 from media_tree.models import FileNode
 from media_tree.media_backends import get_media_backend, ThumbnailError
@@ -60,7 +63,7 @@ class ThumbnailMixin(object):
                         u'<img src="%s" alt="%s" width="%i" height="%i" />' % (
                             thumb.url, os.path.basename(value.name),
                             thumb.width, thumb.height) 
-                    output = u'<div><p><span class="thumbnail">%s</span></p>' \
+                    output = u'<div><div class="thumbnail">%s</div>' \
                               '<p>%s</p></div>' % (thumb_html, output)
             
             except ThumbnailError as inst:
@@ -79,9 +82,44 @@ class AdminThumbWidget(ThumbnailMixin, AdminFileWidget):
         super(AdminThumbWidget, self).__init__(attrs)
  
 
-
 class MediaThumbWidget(ThumbnailMixin, Select):
     """ A ForeignKey Select Widget that shows a thumbnail if it has one. """
     
     def get_thumbnail_source(self, value):
         return FileNode.objects.get(pk=value).file
+
+
+BTN = '<a{0}>{1}</a>'
+WIDGET = ('{0}'
+          '<div>{1}</div> '
+          '<ul class="object-tools"><li>{2}</li><li>{3}</li></ul>')
+
+class MediaPopupWidget(ThumbnailMixin, HiddenInput):
+    class Media:
+        js = ('media_tree/js/media_popup.js',)
+
+    def get_thumbnail_source(self, value):
+        return FileNode.objects.get(pk=value).file
+
+    def render(self, name, value, attrs=None):
+        # Render actual input tag - an <input type="hidden">
+        # which will be manipulated via JS.
+        input_tag = super(MediaPopupWidget, self).render(name, value, attrs)
+        print "->", attrs
+
+        value = FileNode.objects.get(pk=value)
+        selected_title = value.file.name
+        media_title = format_html("<strong>{0}</strong>", selected_title)
+
+        btn_attrs = {'href': reverse('admin:media_tree_filenode_changelist'),
+                     'class': 'mediatree-btn-select',
+                     'id': attrs['id'] + '-select'}
+        button_select = format_html(BTN, flatatt(btn_attrs), _("Select media"))
+
+        btn_attrs = {'href': reverse('admin:media_tree_filenode_add'),
+                     'class': 'mediatree-btn-upload',
+                     'id': attrs['id'] + '-upload'}
+        button_upload = format_html(BTN, flatatt(btn_attrs), _("Upload media"))
+
+        return format_html(
+            WIDGET, input_tag, media_title, button_select, button_upload)
