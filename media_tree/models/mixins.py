@@ -1,33 +1,33 @@
 #encoding=utf-8
 
-from media_tree import settings as app_settings, media_types
-from media_tree.utils import multi_splitext, join_formatted
-from media_tree.utils.staticfiles import get_icon_finders
-from media_tree.utils import get_media_storage
-from media_tree.utils.filenode import get_file_link
-
-import mptt
-from mptt.models import TreeForeignKey
-from mptt.managers import TreeManager
-
-from django.utils.translation import ugettext, ugettext_lazy as _
-from django.conf import settings
-from django.template.defaultfilters import slugify
-from django.utils import dateformat
-from django.contrib.sites.models import Site
-from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
-from django.utils.text import capfirst
-from django.utils.safestring import mark_safe
-from django.utils.encoding import force_unicode
-from django.conf import settings
-from django.utils.formats import get_format
-from django.db import models
-from PIL import Image
-import os
 import mimetypes
+import mptt
+import os
 import uuid
 
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
+from django.core.urlresolvers import reverse
+from django.db import models
+from django.template.defaultfilters import slugify
+from django.utils import dateformat
+from django.utils.encoding import force_unicode
+from django.utils.formats import get_format
+from django.utils.safestring import mark_safe
+from django.utils.text import capfirst
+from django.utils.translation import ugettext, ugettext_lazy as _
+
+from media_tree import settings as app_settings, media_types
+from media_tree.utils import multi_splitext, join_formatted
+from media_tree.utils.filenode import get_file_link
+from media_tree.utils.staticfiles import get_icon_finders
+from mptt.managers import TreeManager
+from mptt.models import TreeForeignKey
+
+from PIL import Image
+
+from .managers import FileNodeManager
 
 MIMETYPE_CONTENT_TYPE_MAP = app_settings.MEDIA_TREE_MIMETYPE_CONTENT_TYPE_MAP
 EXT_MIMETYPE_MAP = app_settings.MEDIA_TREE_EXT_MIMETYPE_MAP
@@ -36,202 +36,7 @@ STATIC_SUBDIR = app_settings.MEDIA_TREE_STATIC_SUBDIR
 MEDIA_TYPE_NAMES = app_settings.MEDIA_TREE_CONTENT_TYPES
 ICON_FINDERS = get_icon_finders(app_settings.MEDIA_TREE_ICON_FINDERS)
 
-
-class FileNodeManager(models.Manager):
-    """ A special manager that enables you to pass a ``path`` argument to
-        :func:`get`, :func:`filter`, and :func:`exclude`, allowing you to 
-        retrieve ``FileNode`` objects by their full node path, 
-        which consists of the names of its parents and itself,
-        e.g. ``"path/to/folder/readme.txt"``. """
-
-    def __init__(self, filter_args={}):
-        super(FileNodeManager, self).__init__()
-        self.filter_args = filter_args
-
-    def get_query_set(self):
-        return super(FileNodeManager, self).get_query_set() \
-                                           .filter(**self.filter_args)
-
-    def get_filter_args_with_path(self, for_self, **kwargs):
-        names = kwargs['path'].strip('/').split('/')
-        names.reverse()
-        parent_arg = '%s'
-        new_kwargs = {}
-        for index, name in enumerate(names):
-            if not for_self or index > 0:
-                parent_arg = 'parent__%s' % parent_arg
-            new_kwargs[parent_arg % 'name'] = name
-        new_kwargs[parent_arg % 'level'] = 0
-        new_kwargs.update(kwargs)
-        new_kwargs.pop('path')
-        return new_kwargs
-
-    def filter(self, *args, **kwargs):
-        """ Works just like the default Manager's :func:`filter` method, but
-            you can pass an additional keyword argument named ``path``
-            specifying the full **path of the folder whose immediate child
-            objects** you want to retrieve, e.g. ``"path/to/folder"``. """
-
-        if 'path' in kwargs:
-            kwargs = self.get_filter_args_with_path(False, **kwargs)
-        return super(FileNodeManager, self).filter(*args, **kwargs)
-
-    def exclude(self, *args, **kwargs):
-        """ Works just like the default Manager's :func:`exclude` method, but
-            you can pass an additional keyword argument named ``path``
-            specifying the full **path of the folder whose immediate child
-            objects** you want to exclude, e.g. ``"path/to/folder"``. """
-
-        if 'path' in kwargs:
-            kwargs = self.get_filter_args_with_path(False, **kwargs)
-        return super(FileNodeManager, self).exclude(*args, **kwargs)
-
-    def get(self, *args, **kwargs):
-        """ Works just like the default Manager's :func:`get` method, but
-            you can pass an additional keyword argument named ``path``
-            specifying the full path of the object you want to retrieve, e.g.
-            ``"path/to/folder/readme.txt"``. """
-
-        if 'path' in kwargs:
-            kwargs = self.get_filter_args_with_path(True, **kwargs)
-        return super(FileNodeManager, self).get(*args, **kwargs)
-
-
-class BaseNode(models.Model):
-    """ A stripped-down abstract base class defining the functionality
-        needed to store a file in a tree-like structure. """
-
-    # Meta
-
-    class Meta:
-        abstract = True
-        ordering = ['tree_id', 'lft']
-        permissions = (("manage_filenode", _("Can perform management tasks")),)
-        verbose_name = _('file node')
-        verbose_name_plural = _('file node')
-
-    # Constants
-
-    STORAGE = get_media_storage()
-    """ An instance of the storage class configured in
-        ``settings.MEDIA_TREE_STORAGE``. """
-
-    # Managers
-
-    tree = TreeManager()
-    """ MPTT tree manager """
-
-    objects = FileNodeManager()
-    """ An instance of the :class:`FileNodeManager` class, providing methods
-        for retrieving ``FileNode`` objects by their full node path. """
-
-    # Fields
-
-    file = models.FileField(_('file'), null=True, storage=STORAGE,
-                            upload_to=app_settings.MEDIA_TREE_UPLOAD_SUBDIR)
-    """ The actual media file. """
-
-    parent = models.ForeignKey('self', verbose_name=_('folder'),
-                               related_name='children', null=True, blank=True)
-    """ The parent (folder) object of the node. """
-    
-    # Methods
-
-    def file_path(self):
-        return self.file.path if self.file else ''
-
-    @staticmethod
-    def get_top_node():
-        """ Returns a symbolic node representing the root of all nodes.
-            This node is not actually stored in the database, but used in the
-            admin to link to the change list. """
-        return FileNode(name=('Media objects'), level=-1)
-
-    def is_top_node(self):
-        """ Returns True if the model instance is the top node. """
-        return self.level == -1
-
-    def get_node_path(self):
-        nodes = []
-        for node in self.get_ancestors():
-            nodes.append(node)
-        if (self.level != -1):
-            nodes.insert(0, self.get_top_node())
-        nodes.append(self)
-        return nodes
-
-    def get_qualified_file_url(self, field_name='file'):
-        """ Returns a fully qualified URL for the :attr:`file` field,
-            including protocol, domain and port. In most cases, you can just
-            use ``file.url`` instead, which (depending on your ``MEDIA_URL``)
-            may or may not contain the domain. In some cases however, you
-            always need a fully qualified URL. This includes, for instance,
-            embedding a flash video player from a remote domain and passing
-            it a video URL. """
-        url = getattr(self, field_name).url
-        if '://' in url:
-            # `MEDIA_URL` already contains domain
-            return url
-        protocol = getattr(settings, 'PROTOCOL', 'http')
-        domain = Site.objects.get_current().domain
-        port = getattr(settings, 'PORT', '')
-        url_template = '%(protocol)s://%(domain)s%(port)s%(url)s'
-        return url_template % {'protocol': 'http',
-                               'domain': domain.rstrip('/'),
-                               'port': ':'+port if port else '',
-                               'url': url}
-
-    def get_path(self):
-        path = ''
-        for name in [node.name for node in self.get_ancestors()]:
-            path = '%s%s/' % (path, name) 
-        return '%s%s' % (path, self.name)
-
-    def is_descendant_of(self, ancestor_nodes):
-        if issubclass(ancestor_nodes.__class__, self.__class__):
-            ancestor_nodes = (ancestor_nodes,)
-        # Check whether requested folder is in selected nodes
-        is_descendant = self in ancestor_nodes
-        if not is_descendant:
-            # Check whether requested folder is a subfolder of selected nodes
-            ancestors = self.get_ancestors(ascending=True)
-            if ancestors:
-                self.parent_folder = ancestors[0]
-                for ancestor in ancestors:
-                    if ancestor in ancestor_nodes:
-                        is_descendant = True
-                        break
-        return is_descendant
-
-    def has_changed(self):
-        file_changed = True
-        if self.pk:
-            try:
-                saved_instance = self.__class__.objects.get(pk=self.pk)
-                if saved_instance.file == self.file:
-                    file_changed = False
-            except self.__class__.DoesNotExist:
-                pass
-        return file_changed
-
-    def prevent_save(self):
-        self.save_prevented = True
-
-    def check_save_prevented(self):
-        if getattr(self, 'save_prevented', False):
-            from django.core.exceptions import ValidationError
-            raise ValidationError('Saving was prevented for this'
-                                  ' FileNode object.')
-
-    def pre_save(self):
-        pass
-
-    def save(self, *args, **kwargs):
-        self.check_save_prevented()
-        self.pre_save()
-        return super(BaseNode, self).save(*args, **kwargs)
-
-        
+  
 class FolderMixin(models.Model):
     """ A mixin that defines the difference between a file and a folder,
         allowing files to be nested inside folders and not other files. """
@@ -816,49 +621,6 @@ class AdminMixin(models.Model):
 #         verbose_name = _('file node')
 #         verbose_name_plural = _('file node')
 
-
-class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
-               PositionMixin, LinkMixin, AdminMixin, BaseNode):
-    """ Each ``FileNode`` instance represents a node in the media object tree,
-        that is to say a “file” or “folder”. Accordingly, their ``node_type``
-        attribute can either be ``media_types.FOLDER``, meaning that they may
-        have child nodes, or ``FileNode.FILE``, meaning that they are
-        associated to media files in storage and are storing metadata about
-        those files.
-
-        .. Note::
-           Since ``FileNode`` is a child class of ``MPTTModel``, it inherits
-           many methods that facilitate queries and data manipulation when
-           working with trees.
-
-        You can access the actual media associated to a ``FileNode`` model
-        instance  using the following fields:
-
-        .. role:: descname(literal)
-           :class: descname 
-
-        :descname:`file`
-            The actual media file
-
-        :descname:`preview_file`
-            An optional image file that will be used for previews. This is
-            useful  for visual media that PIL cannot read, such as video files.
-
-        These fields are of the class ``FileField``. Please see
-        :ref:`configuration` for information on how to configure storage and
-        media backend classes. By default, media files are stored in a
-        subfolder ``uploads`` under your media root. """
-
-    class Meta:
-        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
-
-    def __init__(self, *args, **kwargs):
-        super(FileNode, self).__init__(*args, **kwargs)
-
-# HACK: Override default manager
-FileNode._default_manager = FileNode.objects
-        
-mptt.register(FileNode)
 
 
 from media_tree.utils import autodiscover_media_extensions

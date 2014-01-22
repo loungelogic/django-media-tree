@@ -8,12 +8,16 @@ from copy import copy
 # TODO: There may be some benefits in this function returning a lazily evaluated object, like QuerySets:
 #    https://docs.djangoproject.com/en/dev/ref/models/querysets/#when-querysets-are-evaluated
 
-def __get_filenode_list(nodes, filter_media_types=None, exclude_media_types=None, filter=None, ordering=None, processors=None, list_method='append', max_depth=None, max_nodes=None, _depth=1, _node_count=0):
+def __get_filenode_list(nodes, filter_media_types=None,
+                        exclude_media_types=None, filter=None, ordering=None,
+                        processors=None, list_method='append', max_depth=None,
+                        max_nodes=None, _depth=1, _node_count=0):
 
     if isinstance(nodes, models.query.QuerySet):
         # pre-filter() and exclude() on QuerySet for fewer iterations
         if filter_media_types:
-            nodes = nodes.filter(media_type__in=tuple(filter_media_types)+(media_types.FOLDER,))
+            nodes = nodes.filter(media_type__in=tuple(filter_media_types)
+                                                + (media_types.FOLDER,))
         if exclude_media_types:
             for exclude_media_type in exclude_media_types:
                 if exclude_media_type != media_types.FOLDER:
@@ -29,16 +33,24 @@ def __get_filenode_list(nodes, filter_media_types=None, exclude_media_types=None
             if max_nodes and _node_count > max_nodes:
                 break
             # recursively get child nodes
-            if node.node_type == media_types.FOLDER and node.get_descendant_count() > 0:
-                child_nodes = __get_filenode_list(node.get_children().all(), filter_media_types=filter_media_types, exclude_media_types=exclude_media_types,
-                    filter=filter, ordering=ordering, processors=processors, list_method=list_method, max_depth=max_depth, max_nodes=max_nodes,
-                    _depth=_depth + 1, _node_count=_node_count)
+            has_children = node.node_type == media_types.FOLDER \
+                           and node.get_descendant_count() > 0
+            if has_children:
+                child_nodes = __get_filenode_list(
+                    node.get_children().all(),
+                    filter_media_types=filter_media_types,
+                    exclude_media_types=exclude_media_types,
+                    filter=filter, ordering=ordering, processors=processors,
+                    list_method=list_method, max_depth=max_depth,
+                    max_nodes=max_nodes, _depth=_depth + 1,
+                    _node_count=_node_count)
                 child_count = len(child_nodes)
             else:
                 child_count = 0
-            # add node itself if it matches the filter criteria, or, if result is a nested list
-            # (`list_method == 'append'`), it must include folders in order to make sense,
-            # but folders will only be added if they have any descendants matching the filter criteria
+            # add node itself if it matches the filter criteria, or, if
+            # result is a nested list (`list_method == 'append'`), it must
+            # include folders in order to make sense, but folders will only
+            # be added if they have any descendants matching the filter criteria
             if ((not filter_media_types or node.media_type in filter_media_types) \
                 and (not exclude_media_types or not node.media_type in exclude_media_types)) \
                 or (child_count > 0 and list_method == 'append' and (max_depth is None or _depth < max_depth)):
@@ -61,11 +73,11 @@ def __get_filenode_list(nodes, filter_media_types=None, exclude_media_types=None
     return result_list
 
 def get_nested_filenode_list(nodes, filter_media_types=None, exclude_media_types=None, filter=None, ordering=None, processors=None, max_depth=None, max_nodes=None):
-    """
-    Returns a nested list of nodes, applying optional filters and processors to each node.
-    Nested means that the resulting list will be multi-dimensional, i.e. each item in the list
-    that is a folder containing child nodes will be followed by a sub-list containing those
-    child nodes.
+    """ Returns a nested list of nodes, applying optional filters and
+        processors to each node. Nested means that the resulting list will be
+        multi-dimensional, i.e. each item in the list that is a folder
+        containing child nodes will be followed by a sub-list containing
+        those child nodes.
 
     Example of returned list::
 
