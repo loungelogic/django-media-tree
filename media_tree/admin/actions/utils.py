@@ -3,19 +3,16 @@ from media_tree.models import FileNode
 from django.utils.translation import ugettext as _
 
 def get_actions_context(modeladmin):
-    return {
-        'node': FileNode.get_top_node(), # TODO get current folder
-        "opts": modeladmin.model._meta,
-        "root_path": modeladmin.admin_site.root_path,
-        "app_label": modeladmin.model._meta.app_label,
-        'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME,
-    }
+    return {'node': FileNode.get_top_node(), # TODO get current folder
+            'opts': modeladmin.model._meta,
+            'root_path': modeladmin.admin_site.root_path,
+            'app_label': modeladmin.model._meta.app_label,
+            'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME}
 
 def execute_empty_queryset_action(modeladmin, request):
     action = request.POST.get('action', None)
-    post = request.method == 'POST' \
-           and action \
-           and not request.POST.get(helpers.ACTION_CHECKBOX_NAME, None)
+    post = (request.method == 'POST' and action
+           and not request.POST.get(helpers.ACTION_CHECKBOX_NAME, None))
     if post:
         actions = modeladmin.get_actions(request)
         if actions.has_key(action):

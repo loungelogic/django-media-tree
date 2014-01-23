@@ -15,9 +15,8 @@ from django.utils.safestring import mark_safe
 
 
 def delete_orphaned_files(modeladmin, request, queryset=None):
-    """
-    Deletes orphaned files, i.e. media files existing in storage that are not in the database.
-    """
+    """ Deletes orphaned files, i.e. media files existing in storage
+        that are not in the database. """
     
     execute = request.POST.get('execute')
     
@@ -28,7 +27,8 @@ def delete_orphaned_files(modeladmin, request, queryset=None):
     broken_nodes, orphaned_files = get_broken_media()
 
     for node in broken_nodes:
-        link = mark_safe('<a href="%s">%s</a>' % (node.get_admin_url(), node.__unicode__()))
+        link = mark_safe('<a href="%s">%s</a>' % (
+            node.get_admin_url(), node.__unicode__()))
         broken_node_links.append(link)
 
     for storage_name in orphaned_files:
@@ -42,13 +42,19 @@ def delete_orphaned_files(modeladmin, request, queryset=None):
         return HttpResponseRedirect('')
 
     if execute:
-        form = DeleteOrphanedFilesForm(queryset, orphaned_files_choices, request.POST)
+        form = DeleteOrphanedFilesForm(
+            queryset, orphaned_files_choices, request.POST)
         if form.is_valid():
             form.save()
             node = FileNode.get_top_node()
-            messages.success(request, message=ungettext('Deleted %i file from storage.', 'Deleted %i files from storage.', len(form.success_files)) % len(form.success_files))
+            messages.success(request, message=ungettext(
+                'Deleted %i file from storage.',
+                'Deleted %i files from storage.',
+                len(form.success_files)) % len(form.success_files))
             if form.error_files:
-                messages.error(request, message=_('The following files could not be deleted from storage:')+' '+repr(form.error_files))
+                messages.error(request, message=_(
+                    'The following files could not be deleted from storage:')
+                    + ' ' + repr(form.error_files))
             return HttpResponseRedirect(node.get_admin_url())
 
     if not execute:
@@ -63,10 +69,13 @@ def delete_orphaned_files(modeladmin, request, queryset=None):
         'submit_label': _('Delete selected files'),
         'form': form,
         'select_all': 'selected_files',
-        'node_list_title': _('The following files in the database do not exist in storage. You should fix these media objects:'),
+        'node_list_title': _(
+            'The following files in the database do not exist in storage. '
+            'You should fix these media objects:'),
         'node_list': broken_node_links,
     })
-    return render_to_response('admin/media_tree/filenode/actions_form.html', c, context_instance=RequestContext(request))
+    return render_to_response('admin/media_tree/filenode/actions_form.html',
+                              c, context_instance=RequestContext(request))
 delete_orphaned_files.short_description = _('Find orphaned files')
 delete_orphaned_files.allow_empty_queryset = True
 
@@ -83,9 +92,7 @@ rebuild_tree.allow_empty_queryset = True
 
 
 def clear_cache(modeladmin, request, queryset=None):
-    """
-    Clears media cache files such as thumbnails.
-    """
+    """ Clears media cache files such as thumbnails. """
     
     execute = request.POST.get('execute')
     
@@ -102,16 +109,23 @@ def clear_cache(modeladmin, request, queryset=None):
         return HttpResponseRedirect('')
 
     if execute:
-        form = DeleteCacheFilesForm(queryset, cache_files_choices, request.POST)
+        form = DeleteCacheFilesForm(
+            queryset, cache_files_choices, request.POST)
         if form.is_valid():
             form.save()
             node = FileNode.get_top_node()
-            message = ungettext('Deleted %i cache file.', 'Deleted %i cache files.', len(form.success_files)) % len(form.success_files)
+            message = ungettext(
+                'Deleted %i cache file.',
+                'Deleted %i cache files.',
+                len(form.success_files)) % len(form.success_files)
             if len(form.success_files) == len(cache_files_choices):
                 message = '%s %s' % (_('The cache was cleared.'), message)
             messages.success(request, message=message)
             if form.error_files:
-                messages.error(request, message=_('The following files could not be deleted:')+' '+repr(form.error_files))
+                messages.error(
+                    request,
+                    message=_('The following files could not be deleted:')
+                    + ' ' + repr(form.error_files))
             return HttpResponseRedirect(node.get_admin_url())
 
     if not execute:
@@ -127,7 +141,8 @@ def clear_cache(modeladmin, request, queryset=None):
         'form': form,
         'select_all': 'selected_files',
     })
-    return render_to_response('admin/media_tree/filenode/actions_form.html', c, context_instance=RequestContext(request))
+    return render_to_response('admin/media_tree/filenode/actions_form.html',
+                              c, context_instance=RequestContext(request))
 
     return HttpResponseRedirect('')
 clear_cache.short_description = _('Clear cache')
