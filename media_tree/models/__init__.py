@@ -5,14 +5,14 @@ app, model = MEDIA_TREE_MODEL.split('.')
 FileNode = None
 
 if app == 'media_tree':
-    if model == 'FileNode':
-        module_name = 'file_node'
+    if model == 'FancyFileNode':
+        module_name = 'fancyfilenode'
     elif model == 'SimpleFileNode':
         module_name = 'simplefilenode'
     else:
         raise ImproperlyConfigured(
             "django-media-tree does not define model '%s'. "
-            "Valid choices are: FileNode, SimpleFileNode." % model)
+            "Valid choices are: FancyFileNode, SimpleFileNode." % model)
 
     module = __import__(module_name, globals(), locals(), [model], -1)
     FileNode = getattr(module, model)

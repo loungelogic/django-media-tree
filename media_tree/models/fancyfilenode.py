@@ -14,8 +14,8 @@ from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
 __all__ = ['FileNode']
 
 
-class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
-               PositionMixin, LinkMixin, AdminMixin, FileMixin, BaseNode):
+class FancyFileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
+                    PositionMixin, LinkMixin, AdminMixin, FileMixin, BaseNode):
     """ Each ``FileNode`` instance represents a node in the media object tree,
         that is to say a "file" or "folder". Accordingly, their ``node_type``
         attribute can either be ``media_types.FOLDER``, meaning that they may

@@ -5,7 +5,7 @@ from django.template.defaultfilters import filesizeformat
 from django.utils.translation import ugettext_lazy as _
 
 from media_tree import settings as app_settings
-from media_tree.models import FileNode
+from media_tree.models.fancyfilenode import SimpleFileNode
 from media_tree.models.simplefilenode import SimpleFileNode
 
 
@@ -13,7 +13,7 @@ class FolderForm(forms.ModelForm):
     parent_folder = None
 
     class Meta:
-        model = FileNode
+        model = FancyFileNode
         fieldsets = [(_('Folder'), {'fields': ['parent', 'name',]}),
                      (_('Metadata'), {'fields': ['title', 'description']}),
                      (_('Extended metadata'), {
@@ -37,7 +37,7 @@ class FileForm(forms.ModelForm):
     #set_manual_dimensions = forms.BooleanField(_('set manual dimensions'), required=False)
     
     class Meta:
-        model = FileNode
+        model = FancyFileNode
         fieldsets = [(_('File'), {'fields': ['parent', 'file']}),
                      (_('Display'), {'fields': ['published', 'preview_file',
                                                 'position', 'is_default'],
@@ -75,7 +75,7 @@ class UploadForm(forms.Form):
 
 class MetadataForm(forms.ModelForm):
     class Meta:
-        model = FileNode
+        model = FancyFileNode
         exclude = ('file', 'name', 'is_default', 'preview_file')
 
 

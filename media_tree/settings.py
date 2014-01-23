@@ -5,29 +5,23 @@ from media_tree import media_types
 
 
 MEDIA_TREE_MODEL = \
-    getattr(settings, 'MEDIA_TREE_MODEL', 'media_tree.FileNode')
+    getattr(settings, 'MEDIA_TREE_MODEL', 'media_tree.FancyFileNode')
 """ Points to the model to be used by ``media_tree`` to represent uploaded
     files.
 
-    This defaults to ``'media_tree.FileNode'`` -- a model which includes a
-    number of fields for storing file info and metadata. Alternatively, you
-    could set this to ``'media_tree.SimpleFileNode'``, which selects a
-    bare-bones model containing no metadata at all.
+    This defaults to ``'media_tree.FancyFileNode'`` -- the original FileNode
+    model, which includes a number of convenient fields for storing various
+    commonly needed file information and metadata. Alternatively, you could
+    set this to ``'media_tree.SimpleFileNode'``, which selects a bare-bones
+    model containing no metadata at all.
 
-    ``media_tree`` recognizes that your use case is likely to require storing
-    a different set of metadata altogether; the base classes and mixins
-    provided in ``models.py`` are intended to be used as a starting point for
-    the task of defining your own model. Having defined a model of your own,
-    just set `MEDIA_TREE_MODEL` to `'your_app.YourModel'` and `media_tree`
-    will pick that up.
-
-    .. note:: Internally, the value of this setting determines whether the
-              provided South migrations are used; as well as the `managed`
-              option for the `FileNode` and `SimpleFileNode` models, which,
-              if `False`, hides them from South and `syncdb`. 
-
-              This helps prevent the database from being polluted by the
-              extra tables that would be generated for those models. """
+    However, ``media_tree`` recognizes that your use case is likely to
+    require storing a custom set of metadata; the base classes and mixins
+    provided in ``models.py`` are intended to be used as a starting point
+    for the task of defining your own model. Having defined a model of your
+    own, just set `MEDIA_TREE_MODEL` to `'your_app.YourModel'` to let
+    `media_tree` pick that up; within the ``media_tree`` code, the
+    currently selected model is referred to as ``FileNode``. """
 
 
 MEDIA_TREE_STORAGE = getattr(settings, 'MEDIA_TREE_STORAGE', None)
