@@ -21,7 +21,7 @@ from django import forms
 from django.conf import settings
 from django.conf.urls import patterns, url
 from django.contrib import admin, messages
-from django.contrib.admin import actions
+from django.contrib.admin import actions, ModelAdmin
 from django.contrib.admin.options import csrf_protect_m
 from django.contrib.admin.templatetags.admin_list import _boolean_icon
 from django.contrib.admin.util import unquote
@@ -50,7 +50,7 @@ else:
 
 from media_tree import media_types, settings as app_settings
 from media_tree.fields import FileNodeChoiceField
-from media_tree.forms import FolderForm, FileForm, UploadForm
+from media_tree.forms import FolderForm, FileForm, SimpleFileForm, UploadForm
 from media_tree.models import FileNode
 from media_tree.widgets import AdminThumbWidget
 from media_tree.admin.actions import core_actions
@@ -76,37 +76,8 @@ def mt_static(url):
     return static(app_settings.MEDIA_TREE_STATIC_SUBDIR + '/' + url)
 
 
-class SimpleFileNodeAdmin(MPTTModelAdmin):
-    """ The SimpleFileNodeAdmin aims to let you manage your media files on
-        the web like you are used to on your desktop computer.
-
-        Mimicking the file explorer of an operating system, you can browse
-        your virtual folder structure, copy and move items, upload more media
-        files, and perform many other tasks.
-
-        The SimpleFileNodeAdmin can be used in your own Django projects,
-        serving as a file selection dialog when linking ``FileNode`` objects
-        to your own models.
-
-        You can also extend the admin interface in many different fashions to
-        suit your custom requirements. Please refer to :ref:`extending` for
-        more information about extending Media Tree.
-
-        Special features:
-        =================
-
-        * The AJAX-enhanced interface allows you to browse your folder tree
-          without page reloads.
-        * The file listing supports drag & drop. Drag files and folders to
-          another folder to move them. Hold the Alt key to copy them.
-        * You can set up an upload queue, which enables you to upload large
-          files  and monitor the process via the corresponding progress bars. 
-        * Drag the slider above the file listing to dynamically
-          resize thumbnails.
-        * You can select files and execute various special actions on them,
-          for instance download the selection as a ZIP archive. """
-
-    change_list_template = 'admin/media_tree/filenode/mptt_change_list.html'
+class SimpleFileNodeAdmin(ModelAdmin):
+    change_list_template = 'admin/media_tree/filenode/change_list.html'
 
     list_display = app_settings.MEDIA_TREE_LIST_DISPLAY
     list_filter = app_settings.MEDIA_TREE_LIST_FILTER
@@ -222,15 +193,6 @@ class SimpleFileNodeAdmin(MPTTModelAdmin):
         """ Returns the ChangeList class for use on the changelist page. """
         return SimpleFileNodeChangeList
 
-    def save_model(self, request, obj, form, change):
-        """ Given a model instance save it to the database. """
-        if not change:
-            if not obj.node_type:
-                obj.node_type = get_request_attr(
-                    request, 'save_node_type', None)
-        obj.attach_user(request.user, change)
-        super(SimpleFileNodeAdmin, self).save_model(request, obj, form, change)
-
     def metadata_check(self, node):
         icon = _boolean_icon(node.has_metadata_including_descendants())
         return '<span class="metadata"><span class="metadata-icon">%s</span>' \
@@ -300,7 +262,9 @@ class SimpleFileNodeAdmin(MPTTModelAdmin):
     def node_tools(self, node):
         tools = ''
         tools += '<li><a class="changelink" href="%s">%s</a></li>' % (
-            reverse('admin:media_tree_filenode_change',
+            reverse('admin:%s_%s_change' % (
+                        self.model._meta.app_label,
+                        self.model._meta.model_name),
                     args=(node.pk,)),
             capfirst(ugettext('change')))
         return '<ul class="node-tools">%s</ul>' % tools
@@ -309,18 +273,6 @@ class SimpleFileNodeAdmin(MPTTModelAdmin):
 
     def anchor_name(self, node):
         return 'node-%i' % node.pk
-
-    def browse_controls(self, node):
-        state = ''
-        if node.is_folder():
-            request = get_current_request()
-            state = 'expanded' if self.folder_is_open(request, node) \
-                else 'collapsed'
-        return '<span id="%s" class="node browse-controls %s %s">%s%s</span>' % \
-            (self.anchor_name(node), 'folder' if node.is_folder() else 'file',
-            state, self.expand_collapse(node), self.admin_link(node, True))
-    browse_controls.short_description = ''
-    browse_controls.allow_tags = True
 
     def size_formatted(self, node, with_descendants=True):
         if node.node_type == media_types.FOLDER:
@@ -404,21 +356,13 @@ class SimpleFileNodeAdmin(MPTTModelAdmin):
 
     def _add_node_view(self, request, form_url='', extra_context=None,
                        node_type=media_types.FILE):
-        self.init_parent_folder(request)
-        parent_folder = self.get_parent_folder(request)
         if not extra_context:
             extra_context = {}
-        extra_context.update({'node': parent_folder,
-                              'breadcrumbs_title': _('Add')})
+        extra_context.update({'breadcrumbs_title': _('Add')})
+
         set_request_attr(request, 'save_node_type', node_type)
         response = super(SimpleFileNodeAdmin, self).add_view(
             request, form_url, extra_context)
-        not_top = isinstance(response, HttpResponseRedirect) \
-                  and not parent_folder.is_top_node()
-        if not_top:
-            return HttpResponseRedirect(
-                reverse('admin:media_tree_filenode_folder_expand', 
-                        args=(parent_folder.pk,)))
         return response
 
     @csrf_protect_m
@@ -440,30 +384,18 @@ class SimpleFileNodeAdmin(MPTTModelAdmin):
         except ValueError:
             raise Http404
         set_request_attr(request, 'save_node', node)
-        set_request_attr(request, 'save_node_type', node.node_type)
         if not extra_context:
             extra_context = {}
-        extra_context.update({
-            'node': node,
-        })
-        if node.is_folder():
-            extra_context.update({
-                'breadcrumbs_title': capfirst(_('change'))
-            })
-
+        extra_context.update({'node': node,})
         return super(SimpleFileNodeAdmin, self).change_view(\
             request, object_id, extra_context=extra_context)
 
     def get_form(self, request, *args, **kwargs):
-        save_node_type = get_request_attr(request, 'save_node_type', None)
-        if save_node_type == media_types.FOLDER:
-            self.form = FolderForm
-        else:
-            self.form = FileForm
-        self.fieldsets = self.form.Meta.fieldsets
+        self.form = SimpleFileForm
+        self.fields = self.form.Meta.fields
 
-        form = super(SimpleFileNodeAdmin, self).get_form(request, *args, **kwargs)
-        form.parent_folder = self.get_parent_folder(request)
+        form = super(SimpleFileNodeAdmin, self).get_form(
+            request, *args, **kwargs)
         return form
 
     # Upload view is exempted from CSRF protection since SWFUpload cannot send
@@ -615,6 +547,35 @@ SimpleFileNodeAdmin.register_action(maintenance_actions.clear_cache,
 
 
 class FileNodeAdmin(SimpleFileNodeAdmin):
+    """ The FileNodeAdmin aims to let you manage your media files on
+        the web like you are used to on your desktop computer.
+
+        Mimicking the file explorer of an operating system, you can browse
+        your virtual folder structure, copy and move items, upload more media
+        files, and perform many other tasks.
+
+        The SimpleFileNodeAdmin can be used in your own Django projects,
+        serving as a file selection dialog when linking ``FileNode`` objects
+        to your own models.
+
+        You can also extend the admin interface in many different fashions to
+        suit your custom requirements. Please refer to :ref:`extending` for
+        more information about extending Media Tree.
+
+        Special features:
+        =================
+
+        * The AJAX-enhanced interface allows you to browse your folder tree
+          without page reloads.
+        * The file listing supports drag & drop. Drag files and folders to
+          another folder to move them. Hold the Alt key to copy them.
+        * You can set up an upload queue, which enables you to upload large
+          files  and monitor the process via the corresponding progress bars. 
+        * Drag the slider above the file listing to dynamically
+          resize thumbnails.
+        * You can select files and execute various special actions on them,
+          for instance download the selection as a ZIP archive. """
+
     def get_changelist(self, request, **kwargs):
         return FileNodeChangeList
 
@@ -670,6 +631,25 @@ class FileNodeAdmin(SimpleFileNodeAdmin):
             if not parent_folder.pk in expanded_folders_pk:
                 expanded_folders_pk.append(parent_folder.pk)
                 self.set_expanded_folders_pk(response, expanded_folders_pk)
+        return response
+
+    def _add_node_view(self, request, form_url='', extra_context=None,
+                       node_type=media_types.FILE):
+        self.init_parent_folder(request)
+        parent_folder = self.get_parent_folder(request)
+        if not extra_context:
+            extra_context = {}
+        extra_context.update({'node': parent_folder,
+                              'breadcrumbs_title': _('Add')})
+        set_request_attr(request, 'save_node_type', node_type)
+        response = super(SimpleFileNodeAdmin, self).add_view(
+            request, form_url, extra_context)
+        not_top = isinstance(response, HttpResponseRedirect) \
+                  and not parent_folder.is_top_node()
+        if not_top:
+            return HttpResponseRedirect(
+                reverse('admin:media_tree_filenode_folder_expand', 
+                        args=(parent_folder.pk,)))
         return response
 
     def init_parent_folder(self, request):
@@ -746,3 +726,53 @@ class FileNodeAdmin(SimpleFileNodeAdmin):
     def set_expanded_folders_pk(self, response, expanded_folders_pk):
         response.set_cookie('expanded_folders_pk', '|'.join(
             [str(pk) for pk in expanded_folders_pk]), path='/')
+
+    def get_form(self, request, *args, **kwargs):
+        save_node_type = get_request_attr(request, 'save_node_type', None)
+        if save_node_type == media_types.FOLDER:
+            self.form = FolderForm
+        else:
+            self.form = FileForm
+        self.fieldsets = self.form.Meta.fieldsets
+
+        form = super(SimpleFileNodeAdmin, self).get_form(request, *args, **kwargs)
+        form.parent_folder = self.get_parent_folder(request)
+        return form
+
+    def save_model(self, request, obj, form, change):
+        """ Given a model instance save it to the database. """
+        if not change:
+            if not obj.node_type:
+                obj.node_type = get_request_attr(
+                    request, 'save_node_type', None)
+        obj.attach_user(request.user, change)
+        super(SimpleFileNodeAdmin, self).save_model(request, obj, form, change)
+
+    def browse_controls(self, node):
+        state = ''
+        if node.is_folder():
+            request = get_current_request()
+            state = 'expanded' if self.folder_is_open(request, node) \
+                else 'collapsed'
+        return '<span id="%s" class="node browse-controls %s %s">%s%s</span>' % \
+            (self.anchor_name(node), 'folder' if node.is_folder() else 'file',
+            state, self.expand_collapse(node), self.admin_link(node, True))
+    browse_controls.short_description = ''
+    browse_controls.allow_tags = True
+
+    def change_view(self, request, object_id, extra_context=None):
+        try:
+            object_id = str(object_id)
+            node = get_object_or_404(FileNode, pk=unquote(object_id))
+        except ValueError:
+            raise Http404
+        set_request_attr(request, 'save_node', node)
+        set_request_attr(request, 'save_node_type', node.node_type)
+        if not extra_context:
+            extra_context = {}
+        extra_context.update({'node': node,})
+        if node.is_folder():
+            extra_context.update({'breadcrumbs_title': capfirst(_('change'))})
+
+        return super(SimpleFileNodeAdmin, self).change_view(\
+            request, object_id, extra_context=extra_context)
