@@ -16,6 +16,7 @@ if app == 'media_tree':
 
     module = __import__(module_name, globals(), locals(), [model], -1)
     FileNode = getattr(module, model)
+    
 else:
     from django.db.models import get_model
     FileNode = get_model(app, model, only_installed=False)

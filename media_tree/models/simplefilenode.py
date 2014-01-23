@@ -2,6 +2,7 @@
 
 from media_tree import settings as app_settings
 from .base import BaseNode
+from .mixins import FileMixin
 
 __all__ = ['SimpleFileNode']
 

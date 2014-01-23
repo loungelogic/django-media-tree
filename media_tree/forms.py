@@ -6,6 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from media_tree import settings as app_settings
 from media_tree.models import FileNode
+from media_tree.models.simplefilenode import SimpleFileNode
 
 
 class FolderForm(forms.ModelForm):
@@ -78,9 +79,9 @@ class MetadataForm(forms.ModelForm):
         exclude = ('file', 'name', 'is_default', 'preview_file')
 
 
-class SimpleFileForm(forms.ModelForm):   
+class SimpleFileForm(forms.ModelForm):
     class Meta:
-        model = FileNode
+        model = SimpleFileNode
         fields = ('file',)
 
     def __init__(self, *args, **kwargs):
