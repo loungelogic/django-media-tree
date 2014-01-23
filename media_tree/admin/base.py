@@ -115,12 +115,9 @@ class BaseFileNodeAdmin(ModelAdmin):
         return SimpleFileNodeChangeList
 
     def get_form(self, request, *args, **kwargs):
-        self.form = SimpleFileForm
         self.fields = self.form.Meta.fields
-
-        form = super(BaseFileNodeAdmin, self).get_form(
+        return super(BaseFileNodeAdmin, self).get_form(
             request, *args, **kwargs)
-        return form
 
     # Add view
 
