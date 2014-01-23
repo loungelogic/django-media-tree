@@ -13,7 +13,10 @@ def get_actions_context(modeladmin):
 
 def execute_empty_queryset_action(modeladmin, request):
     action = request.POST.get('action', None)
-    if request.method == 'POST' and action and not request.POST.get(helpers.ACTION_CHECKBOX_NAME, None):
+    post = request.method == 'POST' \
+           and action \
+           and not request.POST.get(helpers.ACTION_CHECKBOX_NAME, None)
+    if post:
         actions = modeladmin.get_actions(request)
         if actions.has_key(action):
             func = actions[action][0]
@@ -21,5 +24,6 @@ def execute_empty_queryset_action(modeladmin, request):
                 return func(modeladmin, request)
             else:
                 pass
-                # Django 1.2 already creates a message
-                # request.user.message_set.create(message=_('No %s selected.') % FileNode._meta.verbose_name_plural)
+                # Django 1.2 already creates a message:
+                # request.user.message_set.create(message=_('No %s selected.')
+                #   % FileNode._meta.verbose_name_plural)

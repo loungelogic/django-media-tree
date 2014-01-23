@@ -28,12 +28,12 @@ it is embedded here.
             </a>
         </li>
         <li>
-            <a href="{% url 'admin:media_tree_filenode_add' %}?parent=&{% if is_popup %}_popup=1{% endif %}" class="addlink">
+            <a href="{% url opts|admin_urlname:"add" %}?parent=&{% if is_popup %}_popup=1{% endif %}" class="addlink">
             {% trans "Add file" %}
             </a>
         </li>
         <li>
-            <a id="object-tool-add-folder" href="{% url 'admin:media_tree_filenode_add_folder' %}{% if is_popup %}?_popup=1{% endif %}" class="addlink folder">
+            <a id="object-tool-add-folder" href="{% url opts|admin_urlname:'add_folder' %}{% if is_popup %}?_popup=1{% endif %}" class="addlink folder">
             <span class="caption">{% trans "Add folder" %}</span>
             </a>
         </li>
@@ -64,7 +64,7 @@ it is embedded here.
 
             var uploader = new DjangoAdminFileUploader({
                 element: $('.changelist-file-uploader')[0],
-                action: '{% url 'admin:media_tree_filenode_upload' %}',
+                action: '{% url opts|admin_urlname:"upload" %}',
                 debug: true,
                 listElement: $('#changelist tbody')[0],
                 csrfmiddlewaretoken: '{{ csrf_token }}'

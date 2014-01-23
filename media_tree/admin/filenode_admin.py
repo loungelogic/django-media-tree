@@ -1,16 +1,18 @@
-# TODO: If in subfolder view, reset_expanded_folders_pk is called and expanded_folders are not stored 
+# TODO: If in subfolder view, reset_expanded_folders_pk is called and
+#       expanded_folders are not stored 
 # TODO: Metadata tooltip is too narrow and text gets too wrapped
 # TODO: Make renaming of files possible.
-# TODO: When files are copied, they lose their human-readable name. Should actually create "File Copy 2.txt".
-# TODO: Bug: With child folder changelist view and child of child expanded -- after uploading a file, the child 
-#       of child has the expanded triangle, 
+# TODO: When files are copied, they lose their human-readable name.
+#       Should actually create "File Copy 2.txt".
+# TODO: Bug: With child folder changelist view and child of child expanded --
+#       after uploading a file, the child of child has the expanded triangle, 
 #       but no child child child objects are visible.
 #
 # Low priority:
 #
 # TODO: Ordering of tree by column (within parent) should be possible
 # TODO: Refactor SWFUpload stuff as extension. This would require signals calls
-#       to be called in the FileNodeAdmin view methods.
+#       to be called in the SimpleFileNodeAdmin view methods.
 
 import os
 
@@ -25,8 +27,8 @@ from django.contrib.admin.templatetags.admin_list import _boolean_icon
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import IS_POPUP_VAR
 from django.contrib.staticfiles.templatetags.staticfiles import static
-from django.core.exceptions import (
-    PermissionDenied, ValidationError, ViewDoesNotExist)
+from django.core.exceptions import (PermissionDenied, ValidationError,
+                                    ViewDoesNotExist)
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
@@ -43,8 +45,8 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 if settings.USE_I18N:
     from django.views.i18n import javascript_catalog
 else:
-    from django.views.i18n import \
-        null_javascript_catalog as javascript_catalog
+    from django.views.i18n import (
+        null_javascript_catalog as javascript_catalog)
 
 from media_tree import media_types, settings as app_settings
 from media_tree.fields import FileNodeChoiceField
@@ -54,9 +56,11 @@ from media_tree.widgets import AdminThumbWidget
 from media_tree.admin.actions import core_actions
 from media_tree.admin.actions import maintenance_actions
 from media_tree.admin.actions.utils import execute_empty_queryset_action
-from media_tree.admin.change_list import MediaTreeChangeList
-from media_tree.admin.utils import get_current_request, set_current_request, \
-    get_request_attr, set_request_attr, is_search_request
+from media_tree.admin.change_list import (SimpleFileNodeChangeList,
+                                          FileNodeChangeList)
+from media_tree.admin.utils import (get_current_request, set_current_request,
+                                    get_request_attr, set_request_attr,
+                                    is_search_request)
 from media_tree.media_backends import get_media_backend
 
 try:
@@ -72,17 +76,17 @@ def mt_static(url):
     return static(app_settings.MEDIA_TREE_STATIC_SUBDIR + '/' + url)
 
 
-class FileNodeAdmin(MPTTModelAdmin):
-    """ The FileNodeAdmin aims to let you manage your media files on the web
-        like you are used to on your desktop computer.
+class SimpleFileNodeAdmin(MPTTModelAdmin):
+    """ The SimpleFileNodeAdmin aims to let you manage your media files on
+        the web like you are used to on your desktop computer.
 
         Mimicking the file explorer of an operating system, you can browse
         your virtual folder structure, copy and move items, upload more media
         files, and perform many other tasks.
 
-        The FileNodeAdmin can be used in your own Django projects, serving as
-        a file selection dialog when linking ``FileNode`` objects to your own
-        models.
+        The SimpleFileNodeAdmin can be used in your own Django projects,
+        serving as a file selection dialog when linking ``FileNode`` objects
+        to your own models.
 
         You can also extend the admin interface in many different fashions to
         suit your custom requirements. Please refer to :ref:`extending` for
@@ -128,7 +132,7 @@ class FileNodeAdmin(MPTTModelAdmin):
                        mt_static('css/ui.css'))}
 
     def __init__(self, *args, **kwargs):
-        super(FileNodeAdmin, self).__init__(*args, **kwargs)
+        super(SimpleFileNodeAdmin, self).__init__(*args, **kwargs)
         # See http://stackoverflow.com/questions/1618728/\
         # disable-link-to-edit-object-in-djangos-admin-display-list-only
         self.list_display_links = (None, )
@@ -139,7 +143,8 @@ class FileNodeAdmin(MPTTModelAdmin):
             # and mptt's formfield_for_foreignkey method, and also preventing
             # Django from wrapping field with RelatedFieldWidgetWrapper ("add"
             # button resulting in a file add form)
-            valid_targets = FileNode.tree.filter(**db_field.rel.limit_choices_to)
+            valid_targets = FileNode.tree.filter(
+                **db_field.rel.limit_choices_to)
             request = kwargs['request']
             node = get_request_attr(request, 'save_node', None)
             if node:
@@ -149,33 +154,33 @@ class FileNodeAdmin(MPTTModelAdmin):
                 valid_targets = valid_targets.exclude(**{
                     opts.tree_id_attr: getattr(node, opts.tree_id_attr),
                     '%s__gte' % opts.left_attr: getattr(node, opts.left_attr),
-                    '%s__lte' % opts.right_attr: getattr(node, opts.right_attr),
-                })
+                    '%s__lte' % opts.right_attr: getattr(node,
+                                                         opts.right_attr)})
             field = FileNodeChoiceField(
                 queryset=valid_targets,
                 label=capfirst(db_field.verbose_name),
                 required=not db_field.blank)
             return field
 
-        return super(FileNodeAdmin, self).formfield_for_dbfield(db_field,
-             **kwargs)
+        return super(SimpleFileNodeAdmin, self).formfield_for_dbfield(
+            db_field, **kwargs)
 
     @staticmethod
     def register_action(func, required_perms=None):
-        FileNodeAdmin._registered_actions.append({
+        SimpleFileNodeAdmin._registered_actions.append({
             'action': func,
             'required_perms': required_perms})
 
     def get_actions(self, request):
         is_popup_var = request.GET.get(IS_POPUP_VAR, None)
         # In ModelAdmin.get_actions(), actions are disabled if the popup var
-        # is present. Since FileNodeAdmin always needs a checkbox, this is
-        # circumvented here:
+        # is present. Since SimpleFileNodeAdmin always needs a checkbox, this
+        # is circumvented here:
         if IS_POPUP_VAR in request.GET:
             request.GET = request.GET.copy()
             del request.GET[IS_POPUP_VAR]
         # get all actions from parent
-        actions = super(FileNodeAdmin, self).get_actions(request)
+        actions = super(SimpleFileNodeAdmin, self).get_actions(request)
         # and restore popup var
         if is_popup_var:
             request.GET[IS_POPUP_VAR] = is_popup_var
@@ -188,7 +193,7 @@ class FileNodeAdmin(MPTTModelAdmin):
                 'delete_selected',
                 _("Delete selected %(verbose_name_plural)s"))
 
-        for action_def in FileNodeAdmin._registered_actions:
+        for action_def in SimpleFileNodeAdmin._registered_actions:
             perms = not action_def['required_perms'] \
                     or request.user.has_perms(action_def['required_perms'])
             if perms:
@@ -202,8 +207,8 @@ class FileNodeAdmin(MPTTModelAdmin):
             recalculated properly. (Because merely doing a bulk delete
             doesn't trigger the post_delete hooks.) """
 
-        # If the user has not yet confirmed the deletion, call the regular delete
-        # action that will present a confirmation page
+        # If the user has not yet confirmed the deletion, call the regular
+        # delete action that will present a confirmation page
         if not request.POST.get('post'):
             return actions.delete_selected(modeladmin, request, queryset)
         # Otherwise, delete objects one by one
@@ -215,7 +220,7 @@ class FileNodeAdmin(MPTTModelAdmin):
 
     def get_changelist(self, request, **kwargs):
         """ Returns the ChangeList class for use on the changelist page. """
-        return MediaTreeChangeList
+        return SimpleFileNodeChangeList
 
     def save_model(self, request, obj, form, change):
         """ Given a model instance save it to the database. """
@@ -224,7 +229,7 @@ class FileNodeAdmin(MPTTModelAdmin):
                 obj.node_type = get_request_attr(
                     request, 'save_node_type', None)
         obj.attach_user(request.user, change)
-        super(FileNodeAdmin, self).save_model(request, obj, form, change)
+        super(SimpleFileNodeAdmin, self).save_model(request, obj, form, change)
 
     def metadata_check(self, node):
         icon = _boolean_icon(node.has_metadata_including_descendants())
@@ -318,7 +323,7 @@ class FileNodeAdmin(MPTTModelAdmin):
     browse_controls.allow_tags = True
 
     def size_formatted(self, node, with_descendants=True):
-        if node.node_type == FileNode.FOLDER:
+        if node.node_type == media_types.FOLDER:
             if with_descendants:
                 descendants = node.get_descendants()
                 if descendants.count() > 0:
@@ -338,144 +343,56 @@ class FileNodeAdmin(MPTTModelAdmin):
     size_formatted.admin_order_field = 'size'
     size_formatted.allow_tags = True
 
-    def init_parent_folder(self, request):
-        folder_id = request.GET.get('folder_id', None) or  \
-            request.GET.get('parent') or request.POST.get('parent', None)
-        reduce_levels = request.GET.get('reduce_levels', None) \
-            or request.POST.get('reduce_levels', None)
-        if folder_id or reduce_levels:
-            request.GET = request.GET.copy()
-            try:
-                del request.GET['folder_id']
-            except KeyError:
-                pass
-            try:
-                del request.GET['reduce_levels']
-            except KeyError:
-                pass
+    def get_changelist_view_options(self, request):
+        extra_context = {}
 
-        if folder_id:
-            parent_folder = get_object_or_404(
-                FileNode, pk=folder_id, node_type=FileNode.FOLDER)
-        else:
-            parent_folder = FileNode.get_top_node()
+        if app_settings.MEDIA_TREE_SWFUPLOAD:
+            app, model = \
+                self.model._meta.app_label, self.model._meta.model_name
 
-        if reduce_levels:
-            try:
-                reduce_levels = int(reduce_levels)
-            except ValueError:
-                reduce_levels = None
+            extra_context.update({
+                'file_types': app_settings.MEDIA_TREE_ALLOWED_FILE_TYPES,
+                'file_size_limit': app_settings.MEDIA_TREE_FILE_SIZE_LIMIT,
+                'swfupload_flash_url': reverse(
+                    'admin:%s_%s_upload' % (app, model)),
+                'swfupload_upload_url': reverse(
+                    'admin:%s_%s_static_swfupload_swf' % (app, model))})
 
-        reset = not reduce_levels \
-                and not request.is_ajax() \
-                and parent_folder.level >= 0
-        if reset:
-            self.reset_expanded_folders_pk(request)
-            reduce_levels = parent_folder.level + 1
-
-        set_request_attr(request, 'parent_folder', parent_folder)
-        set_request_attr(request, 'reduce_levels', reduce_levels)
-
-    def get_parent_folder(self, request):
-        return get_request_attr(request, 'parent_folder', None)
-
-    def get_expanded_folders_pk(self, request):
-        if not hasattr(request, 'expanded_folders_pk'):
-            expanded_folders_pk = []
-            cookie = request.COOKIES.get('expanded_folders_pk', None)
-            if cookie:
-                try:
-                    expanded_folders_pk = [int(pk) for pk in cookie.split('|')]
-                except ValueError:
-                    pass
-            # for each folder in the expanded_folders_pk, check if all of its
-            # ancestors are also in the list, since a child folder cannot be
-            # opened if its parent folders aren't
-            for folder in FileNode.objects.filter(pk__in=expanded_folders_pk):
-                for ancestor in folder.get_ancestors():
-                    expanded = not ancestor.pk in expanded_folders_pk \
-                               and folder.pk in expanded_folders_pk
-                    if expanded:
-                        expanded_folders_pk.remove(folder.pk)
-            setattr(request, 'expanded_folders_pk', expanded_folders_pk)
-
-        return getattr(request, 'expanded_folders_pk', None)
-
-    def reset_expanded_folders_pk(self, request):
-        setattr(request, 'expanded_folders_pk', [])
-
-    def folder_is_open(self, request, folder):
-        return folder.pk in self.get_expanded_folders_pk(request)
-
-    def set_expanded_folders_pk(self, response, expanded_folders_pk):
-        response.set_cookie('expanded_folders_pk', '|'.join(
-            [str(pk) for pk in expanded_folders_pk]), path='/')
-
-    def init_changelist_view_options(self, request):
-        if 'thumbnail_size' in request.GET:
-            request.GET = request.GET.copy()
-            thumb_size_key = request.GET.get('thumbnail_size')
-            del request.GET['thumbnail_size']
-
-            sizes = app_settings.MEDIA_TREE_ADMIN_THUMBNAIL_SIZES
-            if not thumb_size_key in sizes:
-                 thumb_size_key = None
-            request.session['thumbnail_size'] = thumb_size_key
-        thumb_size_key = request.session.get('thumbnail_size', 'default')
-        set_request_attr(request, 'thumbnail_size', thumb_size_key)
-        return {
-            'thumbnail_sizes': app_settings.MEDIA_TREE_ADMIN_THUMBNAIL_SIZES,
-            'thumbnail_size_key': thumb_size_key}
+        return extra_context
 
     def changelist_view(self, request, extra_context=None):
         response = execute_empty_queryset_action(self, request)
         if response:
             return response
 
-        if not is_search_request(request):
-            self.init_parent_folder(request)
-        else:
-            self.reset_expanded_folders_pk(request)
-        parent_folder = self.get_parent_folder(request)
         set_current_request(request)
 
         if not extra_context:
             extra_context = {}
-
-        extra_context.update(self.init_changelist_view_options(request))
+        extra_context.update(self.get_changelist_view_options(request))
 
         if app_settings.MEDIA_TREE_SWFUPLOAD:
-            swfupload_upload_url = reverse('admin:media_tree_filenode_upload')
-            # swfupload_flash_url = os.path.join(settings.MEDIA_URL,
-            #     STATIC_SUBDIR, 'lib/swfupload/swfupload_fp10/swfupload.swf')
-            swfupload_flash_url = reverse(
-                'admin:media_tree_filenode_static_swfupload_swf')
+            app, model = \
+                self.model._meta.app_label, self.model._meta.model_name
+
             extra_context.update({
                 'file_types': app_settings.MEDIA_TREE_ALLOWED_FILE_TYPES,
                 'file_size_limit': app_settings.MEDIA_TREE_FILE_SIZE_LIMIT,
-                'swfupload_flash_url': swfupload_flash_url,
-                'swfupload_upload_url': swfupload_upload_url})
+                'swfupload_flash_url': reverse(
+                    'admin:%s_%s_upload' % (app, model)),
+                'swfupload_upload_url': reverse(
+                    'admin:%s_%s_static_swfupload_swf' % (app, model))})
 
         if request.GET.get(IS_POPUP_VAR, None):
             extra_context.update({'select_button': True})
 
-        if parent_folder:
-            extra_context.update({'node': parent_folder})
-
-        response = super(FileNodeAdmin, self)\
+        response = super(SimpleFileNodeAdmin, self) \
             .changelist_view(request, extra_context)
-        child = isinstance(response, HttpResponse) \
-                and parent_folder and not parent_folder.is_top_node()
-        if child:
-            expanded_folders_pk = self.get_expanded_folders_pk(request)
-            if not parent_folder.pk in expanded_folders_pk:
-                expanded_folders_pk.append(parent_folder.pk)
-                self.set_expanded_folders_pk(response, expanded_folders_pk)
         return response
 
     def folder_expand_view(self, request, object_id, extra_context=None):
         node = get_object_or_404(
-            FileNode, pk=unquote(object_id), node_type=FileNode.FOLDER)
+            FileNode, pk=unquote(object_id), node_type=media_types.FOLDER)
         expand = list(node.get_ancestors())
         expand.append(node)
         response = HttpResponseRedirect('%s#%s' % (
@@ -486,7 +403,7 @@ class FileNodeAdmin(MPTTModelAdmin):
         return response
 
     def _add_node_view(self, request, form_url='', extra_context=None,
-                       node_type=FileNode.FILE):
+                       node_type=media_types.FILE):
         self.init_parent_folder(request)
         parent_folder = self.get_parent_folder(request)
         if not extra_context:
@@ -494,7 +411,7 @@ class FileNodeAdmin(MPTTModelAdmin):
         extra_context.update({'node': parent_folder,
                               'breadcrumbs_title': _('Add')})
         set_request_attr(request, 'save_node_type', node_type)
-        response = super(FileNodeAdmin, self).add_view(
+        response = super(SimpleFileNodeAdmin, self).add_view(
             request, form_url, extra_context)
         not_top = isinstance(response, HttpResponseRedirect) \
                   and not parent_folder.is_top_node()
@@ -508,13 +425,13 @@ class FileNodeAdmin(MPTTModelAdmin):
     @transaction.commit_on_success
     def add_view(self, request, form_url='', extra_context=None):
         return self._add_node_view(request, form_url, extra_context,
-            node_type=FileNode.FILE)
+            node_type=media_types.FILE)
 
     @csrf_protect_m
     @transaction.commit_on_success
     def add_folder_view(self, request, form_url='', extra_context=None):
         return self._add_node_view(request, form_url, extra_context,
-            node_type=FileNode.FOLDER)
+            node_type=media_types.FOLDER)
 
     def change_view(self, request, object_id, extra_context=None):
         try:
@@ -534,18 +451,18 @@ class FileNodeAdmin(MPTTModelAdmin):
                 'breadcrumbs_title': capfirst(_('change'))
             })
 
-        return super(FileNodeAdmin, self).change_view(\
+        return super(SimpleFileNodeAdmin, self).change_view(\
             request, object_id, extra_context=extra_context)
 
     def get_form(self, request, *args, **kwargs):
         save_node_type = get_request_attr(request, 'save_node_type', None)
-        if save_node_type == FileNode.FOLDER:
+        if save_node_type == media_types.FOLDER:
             self.form = FolderForm
         else:
             self.form = FileForm
         self.fieldsets = self.form.Meta.fieldsets
 
-        form = super(FileNodeAdmin, self).get_form(request, *args, **kwargs)
+        form = super(SimpleFileNodeAdmin, self).get_form(request, *args, **kwargs)
         form.parent_folder = self.get_parent_folder(request)
         return form
 
@@ -576,7 +493,7 @@ class FileNodeAdmin(MPTTModelAdmin):
 
                 if form.is_valid():
                     node = FileNode(file=form.cleaned_data['file'],
-                                    node_type=FileNode.FILE)
+                                    node_type=media_types.FILE)
                     parent_folder = self.get_parent_folder(request)
                     if not parent_folder.is_top_node():
                         node.parent = parent_folder
@@ -644,8 +561,8 @@ class FileNodeAdmin(MPTTModelAdmin):
         return javascript_catalog(request, packages=['media_tree'])
 
     def get_urls(self):
-        urls = super(FileNodeAdmin, self).get_urls()
-        info = self.model._meta.app_label, self.model._meta.module_name
+        urls = super(SimpleFileNodeAdmin, self).get_urls()
+        info = self.model._meta.app_label, self.model._meta.model_name
         url_patterns = patterns('',
             url(r'^jsi18n/',
                 self.admin_site.admin_view(self.i18n_javascript),
@@ -681,19 +598,151 @@ class FileNodeAdmin(MPTTModelAdmin):
         return url_patterns
 
 
-FileNodeAdmin.register_action(core_actions.copy_selected)
-FileNodeAdmin.register_action(core_actions.move_selected)
-FileNodeAdmin.register_action(core_actions.change_metadata_for_selected)
-FileNodeAdmin.register_action(core_actions.expand_selected)
-FileNodeAdmin.register_action(core_actions.collapse_selected)
+SimpleFileNodeAdmin.register_action(core_actions.copy_selected)
+SimpleFileNodeAdmin.register_action(core_actions.move_selected)
+SimpleFileNodeAdmin.register_action(core_actions.change_metadata_for_selected)
+SimpleFileNodeAdmin.register_action(core_actions.expand_selected)
+SimpleFileNodeAdmin.register_action(core_actions.collapse_selected)
 
-FileNodeAdmin.register_action(
+SimpleFileNodeAdmin.register_action(
     maintenance_actions.delete_orphaned_files, ('media_tree.manage_filenode',))
 if settings.DEBUG:
-    FileNodeAdmin.register_action(maintenance_actions.rebuild_tree,
+    SimpleFileNodeAdmin.register_action(maintenance_actions.rebuild_tree,
                                   ('media_tree.manage_filenode',))
 
-FileNodeAdmin.register_action(maintenance_actions.clear_cache,
+SimpleFileNodeAdmin.register_action(maintenance_actions.clear_cache,
                               ('media_tree.manage_filenode',))
 
-admin.site.register(FileNode, FileNodeAdmin)
+
+class FileNodeAdmin(SimpleFileNodeAdmin):
+    def get_changelist(self, request, **kwargs):
+        return FileNodeChangeList
+
+    def get_changelist_view_options(self, request):
+        extra_context = super(FileNodeAdmin, self) \
+            .get_changelist_view_options(request)
+
+        if 'thumbnail_size' in request.GET:
+            request.GET = request.GET.copy()
+            thumb_size_key = request.GET.get('thumbnail_size')
+            del request.GET['thumbnail_size']
+
+            sizes = app_settings.MEDIA_TREE_ADMIN_THUMBNAIL_SIZES
+            if not thumb_size_key in sizes:
+                 thumb_size_key = None
+            request.session['thumbnail_size'] = thumb_size_key
+        thumb_size_key = request.session.get('thumbnail_size', 'default')
+        set_request_attr(request, 'thumbnail_size', thumb_size_key)
+        
+        extra_context.update({
+            'thumbnail_sizes': app_settings.MEDIA_TREE_ADMIN_THUMBNAIL_SIZES,
+            'thumbnail_size_key': thumb_size_key})
+
+    def changelist_view(self, request, extra_context=None):
+        response = execute_empty_queryset_action(self, request)
+        if response:
+            return response
+
+        if not is_search_request(request):
+            self.init_parent_folder(request)
+        else:
+            self.reset_expanded_folders_pk(request)
+        parent_folder = self.get_parent_folder(request)
+        set_current_request(request)
+
+        if not extra_context:
+            extra_context = {}
+
+        extra_context.update(self.get_changelist_view_options(request))
+
+        if request.GET.get(IS_POPUP_VAR, None):
+            extra_context.update({'select_button': True})
+
+        if parent_folder:
+            extra_context.update({'node': parent_folder})
+
+        response = super(SimpleFileNodeAdmin, self)\
+            .changelist_view(request, extra_context)
+        child = isinstance(response, HttpResponse) \
+                and parent_folder and not parent_folder.is_top_node()
+        if child:
+            expanded_folders_pk = self.get_expanded_folders_pk(request)
+            if not parent_folder.pk in expanded_folders_pk:
+                expanded_folders_pk.append(parent_folder.pk)
+                self.set_expanded_folders_pk(response, expanded_folders_pk)
+        return response
+
+    def init_parent_folder(self, request):
+        folder_id = request.GET.get('folder_id', None) \
+                    or request.GET.get('parent') \
+                    or request.POST.get('parent', None)
+        reduce_levels = request.GET.get('reduce_levels', None) \
+                        or request.POST.get('reduce_levels', None)
+
+        if folder_id or reduce_levels:
+            request.GET = request.GET.copy()
+            try:
+                del request.GET['folder_id']
+            except KeyError:
+                pass
+            try:
+                del request.GET['reduce_levels']
+            except KeyError:
+                pass
+
+        if folder_id:
+            parent_folder = get_object_or_404(
+                FileNode, pk=folder_id, node_type=media_types.FOLDER)
+        else:
+            parent_folder = FileNode.get_top_node()
+
+        if reduce_levels:
+            try:
+                reduce_levels = int(reduce_levels)
+            except ValueError:
+                reduce_levels = None
+
+        reset = not reduce_levels \
+                and not request.is_ajax() \
+                and parent_folder.level >= 0
+        if reset:
+            self.reset_expanded_folders_pk(request)
+            reduce_levels = parent_folder.level + 1
+
+        set_request_attr(request, 'parent_folder', parent_folder)
+        set_request_attr(request, 'reduce_levels', reduce_levels)
+
+    def get_parent_folder(self, request):
+        return get_request_attr(request, 'parent_folder', None)
+
+    def get_expanded_folders_pk(self, request):
+        if not hasattr(request, 'expanded_folders_pk'):
+            expanded_folders_pk = []
+            cookie = request.COOKIES.get('expanded_folders_pk', None)
+            if cookie:
+                try:
+                    expanded_folders_pk = [int(pk) for pk in cookie.split('|')]
+                except ValueError:
+                    pass
+            # for each folder in the expanded_folders_pk, check if all of its
+            # ancestors are also in the list, since a child folder cannot be
+            # opened if its parent folders aren't
+            for folder in FileNode.objects.filter(pk__in=expanded_folders_pk):
+                for ancestor in folder.get_ancestors():
+                    expanded = not ancestor.pk in expanded_folders_pk \
+                               and folder.pk in expanded_folders_pk
+                    if expanded:
+                        expanded_folders_pk.remove(folder.pk)
+            setattr(request, 'expanded_folders_pk', expanded_folders_pk)
+
+        return getattr(request, 'expanded_folders_pk', None)
+
+    def reset_expanded_folders_pk(self, request):
+        setattr(request, 'expanded_folders_pk', [])
+
+    def folder_is_open(self, request, folder):
+        return folder.pk in self.get_expanded_folders_pk(request)
+
+    def set_expanded_folders_pk(self, response, expanded_folders_pk):
+        response.set_cookie('expanded_folders_pk', '|'.join(
+            [str(pk) for pk in expanded_folders_pk]), path='/')

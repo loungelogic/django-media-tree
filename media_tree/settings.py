@@ -63,7 +63,7 @@ _DEFAULT_LIST_DISPLAY = {
         'resolution_formatted', 'get_descendant_count_display', 'modified',
         'modified_by', 'metadata_check', 'position', 'node_tools'),
     'media_tree.SimpleFileNode': (
-        'browse_controls', 'get_descendant_count_display', 'node_tools')}
+        'browse_controls', 'node_tools')}
 
 MEDIA_TREE_LIST_DISPLAY = getattr(settings, 'MEDIA_TREE_LIST_DISPLAY',
     _DEFAULT_LIST_DISPLAY[MEDIA_TREE_MODEL])
