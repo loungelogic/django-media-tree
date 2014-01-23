@@ -10,6 +10,8 @@ from media_tree.models import FileNode
 from media_tree.widgets import FileNodeForeignKeyRawIdWidget
 from mptt.forms import TreeNodeChoiceField
 
+from .models import FileNode
+
 
 LEVEL_INDICATOR = app_settings.MEDIA_TREE_LEVEL_INDICATOR
 
@@ -133,8 +135,7 @@ class FileNodeForeignKey(models.ForeignKey):
         self.allowed_media_types = allowed_media_types
         self.allowed_extensions = allowed_extensions
         self.level_indicator = level_indicator
-        super(FileNodeForeignKey, self).__init__(
-            settings.MEDIA_TREE_MODEL, *args, **kwargs)
+        super(FileNodeForeignKey, self).__init__(FileNode, *args, **kwargs)
         # print self.rel
 
     def formfield(self, **kwargs):

@@ -11,7 +11,7 @@ from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
                     PositionMixin, LinkMixin, AdminMixin, FileMixin
 
 
-__all__ = ['FileNode']
+__all__ = ['FancyFileNode']
 
 
 class FancyFileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
