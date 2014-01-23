@@ -18,5 +18,4 @@ if app == 'media_tree':
     FileNode = getattr(module, model)
 else:
     from django.db.models import get_model
-    import pdb; pdb.set_trace()
     FileNode = get_model(app, model, only_installed=False)
