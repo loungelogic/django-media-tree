@@ -1,16 +1,16 @@
 #encoding=utf-8
 
 import mptt
-from .base import BaseFileNode
+from .base import BaseNode
 from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
-                    PositionMixin, LinkMixin, AdminMixin
+                    PositionMixin, LinkMixin, AdminMixin, FileMixin
 
 
 __all__ = ['FileNode']
 
 
 class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
-               PositionMixin, LinkMixin, AdminMixin, BaseFileNode):
+               PositionMixin, LinkMixin, AdminMixin, FileMixin, BaseNode):
     """ Each ``FileNode`` instance represents a node in the media object tree,
         that is to say a "file" or "folder". Accordingly, their ``node_type``
         attribute can either be ``media_types.FOLDER``, meaning that they may

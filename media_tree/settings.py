@@ -65,7 +65,7 @@ _DEFAULT_LIST_DISPLAY = {
     'media_tree.SimpleFileNode': ('file', )}
 
 MEDIA_TREE_LIST_DISPLAY = getattr(settings, 'MEDIA_TREE_LIST_DISPLAY',
-    _DEFAULT_LIST_DISPLAY[MEDIA_TREE_MODEL])
+    _DEFAULT_LIST_DISPLAY.get(MEDIA_TREE_MODEL, None))
 """ A tuple containing the columns that should be displayed in the
     ``FileNodeAdmin``. Note that the ``browse_controls`` column is necessary
     for the admin to function properly. """
@@ -76,14 +76,14 @@ _DEFAULT_LIST_FILTER = {
     'media_tree.SimpleFileNode': ()}
 
 MEDIA_TREE_LIST_FILTER = getattr(settings, 'MEDIA_TREE_LIST_FILTER',
-    _DEFAULT_LIST_FILTER[MEDIA_TREE_MODEL])
+    _DEFAULT_LIST_FILTER.get(MEDIA_TREE_MODEL, None))
 """ A tuple containing the fields that nodes can be filtered by in the
     ``FileNodeAdmin``. """
 
 
 _DEFAULT_ORDERING = {'media_tree.FileNode': ['name'],
                      'media_tree.SimpleFileNode': ()}
-MEDIA_TREE_ORDERING_DEFAULT = _DEFAULT_ORDERING[MEDIA_TREE_MODEL]
+MEDIA_TREE_ORDERING_DEFAULT = _DEFAULT_ORDERING.get(MEDIA_TREE_MODEL, None)
 
 
 #MEDIA_TREE_LIST_DISPLAY_LINKS = ('name',)
@@ -249,6 +249,6 @@ MEDIA_TREE_NAME_UNIQUE_NUMBERED_FORMAT = '%(name)s_%(number)i%(ext)s'
 MEDIA_TREE_METADATA_LESS_MEDIA_TYPES = (
     media_types.FOLDER, media_types.DOCUMENT, media_types.ARCHIVE,
     media_types.TEXT)
-""" For these  media types, no metadata is critically required apart from a
+""" For these media types, no metadata is critically required apart from a
     name, since the files itself contain text and the filename should be
     descriptive already. """
