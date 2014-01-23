@@ -23,7 +23,7 @@ from media_tree.utils import get_media_storage, multi_splitext, join_formatted
 from media_tree.utils.filenode import get_file_link
 from media_tree.utils.staticfiles import get_icon_finders
 from mptt.managers import TreeManager
-from mptt.models import TreeForeignKey
+from mptt.models import MPTTModel, TreeForeignKey
 
 from PIL import Image
 
@@ -91,9 +91,14 @@ class FileMixin(models.Model):
         return file_changed
 
   
-class FolderMixin(models.Model):
+class FolderMixin(MPTTModel):
     """ A mixin that defines the difference between a file and a folder,
-        allowing files to be nested inside folders and not other files. """
+        allowing files to be nested inside folders and not other files.
+
+        Since the pre_save method of this mixin breaks the inheritance chain
+        if the node is a folder, as well as due to some particularities of 
+        how the underlying ``MPTTModel`` works, FolderMixin will most likely
+        need to precede any other mixins that implement this method. """
 
     class Meta:
         abstract = True
@@ -160,10 +165,6 @@ class FolderMixin(models.Model):
         return ret
 
     def pre_save(self):
-        """ Since this method breaks the inheritance chain if the node
-            is a folder, FolderMixin will most likely need to precede any
-            other mixins that implement this method. """
-
         if self.node_type == media_types.FOLDER:
             # Admin asserts that folder name is unique under parent.
             # For other inserts:

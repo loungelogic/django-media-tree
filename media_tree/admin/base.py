@@ -128,7 +128,6 @@ class BaseFileNodeAdmin(ModelAdmin):
             extra_context = {}
         extra_context.update({'breadcrumbs_title': _('Add')})
 
-        set_request_attr(request, 'save_node_type', node_type)
         response = super(BaseFileNodeAdmin, self).add_view(
             request, form_url, extra_context)
         return response
@@ -184,7 +183,6 @@ class BaseFileNodeAdmin(ModelAdmin):
         response = super(BaseFileNodeAdmin, self) \
             .changelist_view(request, extra_context)
         return response
-
 
     # Upload view
 
