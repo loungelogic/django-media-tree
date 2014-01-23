@@ -2,9 +2,11 @@ from django.core.exceptions import ImproperlyConfigured
 from ..settings import MEDIA_TREE_MODEL
 
 app, model = MEDIA_TREE_MODEL.split('.')
+FileNode = None
+
 if app == 'media_tree':
     if model == 'FileNode':
-        module_name = 'filenode'
+        module_name = 'file_node'
     elif model == 'SimpleFileNode':
         module_name = 'simplefilenode'
     else:
@@ -16,4 +18,5 @@ if app == 'media_tree':
     FileNode = getattr(module, model)
 else:
     from django.db.models import get_model
-    FileNode = get_model(app, model, only_installed=True)
+    import pdb; pdb.set_trace()
+    FileNode = get_model(app, model, only_installed=False)

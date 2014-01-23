@@ -1,5 +1,10 @@
 #encoding=utf-8
 
+""" Please note that the name of this file should always be kept
+    different from 'filenode.py'; otherwise, Python's importer can
+    get confused and try to import this file instead of the FileNode
+    model as selected in media_tree/models/__init__.py. """
+
 import mptt
 from .base import BaseNode
 from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
