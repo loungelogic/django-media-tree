@@ -7,10 +7,11 @@ from django.contrib.admin.options import csrf_protect_m
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import IS_POPUP_VAR
 from django.contrib.staticfiles.templatetags.staticfiles import static
+from django.core.exceptions import PermissionDenied, ViewDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.shortcuts import get_object_or_404
-from django.utils.text import capfirst
+from django.http import Http404, HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render_to_response
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 from media_tree import settings as app_settings
@@ -180,18 +181,6 @@ class BaseFileNodeAdmin(ModelAdmin):
             extra_context = {}
         extra_context.update(self.get_changelist_view_options(request))
 
-        if app_settings.MEDIA_TREE_SWFUPLOAD:
-            app, model = \
-                self.model._meta.app_label, self.model._meta.model_name
-
-            extra_context.update({
-                'file_types': app_settings.MEDIA_TREE_ALLOWED_FILE_TYPES,
-                'file_size_limit': app_settings.MEDIA_TREE_FILE_SIZE_LIMIT,
-                'swfupload_flash_url': reverse(
-                    'admin:%s_%s_upload' % (app, model)),
-                'swfupload_upload_url': reverse(
-                    'admin:%s_%s_static_swfupload_swf' % (app, model))})
-
         if request.GET.get(IS_POPUP_VAR, None):
             extra_context.update({'select_button': True})
 
@@ -251,7 +240,9 @@ class BaseFileNodeAdmin(ModelAdmin):
                             request,
                             _('Successfully uploaded file %s.') % node.name)
                         return HttpResponseRedirect(
-                            reverse('admin:media_tree_filenode_changelist'))
+                            reverse('admin:%s_%s_changelist' % (
+                                self.model._meta.app_label,
+                                self.model._meta.model_name)))
                 else:
                     # invalid form data
                     if request.is_ajax():

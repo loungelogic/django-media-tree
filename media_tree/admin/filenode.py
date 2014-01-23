@@ -20,33 +20,28 @@ import django
 from django import forms
 from django.conf import settings
 from django.conf.urls import patterns, url
-from django.contrib import admin, messages
+from django.contrib import messages
 from django.contrib.admin import actions, ModelAdmin
 from django.contrib.admin.options import csrf_protect_m
 from django.contrib.admin.templatetags.admin_list import _boolean_icon
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import IS_POPUP_VAR
-from django.contrib.staticfiles.templatetags.staticfiles import static
-from django.core.exceptions import (PermissionDenied, ValidationError,
-                                    ViewDoesNotExist)
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render_to_response
-from django.template import RequestContext
+from django.shortcuts import get_object_or_404
 from django.template.defaultfilters import filesizeformat
 from django.template.loader import render_to_string
-from django.utils.encoding import force_unicode
 from django.utils.text import capfirst
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 if settings.USE_I18N:
     from django.views.i18n import javascript_catalog
 else:
-    from django.views.i18n import (
-        null_javascript_catalog as javascript_catalog)
+    from django.views.i18n import (null_javascript_catalog \
+                                   as javascript_catalog)
 
 from media_tree import media_types, settings as app_settings
 from media_tree.admin.actions import core_actions, maintenance_actions
@@ -435,7 +430,9 @@ class FileNodeAdmin(BaseFileNodeAdmin, MPTTModelAdmin):
                   and not parent_folder.is_top_node()
         if not_top:
             return HttpResponseRedirect(
-                reverse('admin:media_tree_filenode_folder_expand', 
+                reverse('admin:%s_%s_folder_expand'  % (
+                            self.model._meta.app_label,
+                            self.model._meta.model_name),
                         args=(parent_folder.pk,)))
         return response
 
@@ -540,7 +537,7 @@ class FileNodeAdmin(BaseFileNodeAdmin, MPTTModelAdmin):
         expand = list(node.get_ancestors())
         expand.append(node)
         response = HttpResponseRedirect('%s#%s' % (
-            reverse('admin:media_tree_filenode_changelist' % (
+            reverse('admin:%s_%s_changelist' % (
                 self.model._meta.app_label, self.model._meta.model_name)),
             self.anchor_name(node)))
         self.set_expanded_folders_pk(
