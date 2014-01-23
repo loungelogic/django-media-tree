@@ -2,7 +2,7 @@
 
 import mptt
 from media_tree import settings as app_settings
-from .base import BaseNode
+from .base import BaseFileNode
 from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
                     PositionMixin, LinkMixin, AdminMixin
 
@@ -10,7 +10,7 @@ from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
 __all__ = ['SimpleFileNode', 'FileNode']
 
 
-class SimpleFileNode(FolderMixin, BaseNode):
+class SimpleFileNode(BaseFileNode):
     class Meta:
         app_label = 'media_tree'
         managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.SimpleFileNode'
@@ -18,7 +18,7 @@ SimpleFileNode._default_manager = SimpleFileNode.objects
 
 
 class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
-               PositionMixin, LinkMixin, AdminMixin, BaseNode):
+               PositionMixin, LinkMixin, AdminMixin, BaseFileNode):
     """ Each ``FileNode`` instance represents a node in the media object tree,
         that is to say a "file" or "folder". Accordingly, their ``node_type``
         attribute can either be ``media_types.FOLDER``, meaning that they may

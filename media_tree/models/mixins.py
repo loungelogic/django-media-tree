@@ -43,6 +43,7 @@ class FolderMixin(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ['tree_id', 'lft']
 
     # Constants
 
@@ -56,6 +57,10 @@ class FolderMixin(models.Model):
 
     # Managers
 
+    objects = FileNodeManager()
+    """ An instance of the :class:`FileNodeManager` class, providing methods
+        for retrieving ``FileNode`` objects by their full node path. """
+
     folders = FileNodeManager({'node_type': FOLDER})
     """ A special manager with the same features as :attr:`objects`,
         but only displaying folder nodes. """
@@ -64,12 +69,19 @@ class FolderMixin(models.Model):
     """ A special manager with the same features as :attr:`objects`,
         but only displaying file nodes, no folder nodes. """
 
+    tree = TreeManager()
+    """ MPTT tree manager """
+
     # Fields
+
+    parent = models.ForeignKey('self', verbose_name=_('folder'),
+                               related_name='children', null=True, blank=True)
+    """ The parent (folder) object of the node. """
 
     node_type = models.IntegerField(
         _('node type'), choices=((FOLDER, 'Folder'), (FILE, 'File')),
         editable=False, blank=False, null=False)
-    """ Type of the node (:attr:`FileNode.FILE` or :attr:`media_types.FOLDER`) """
+    """ Type of the node (:attr:`media_types.FILE` or :attr:`media_types.FOLDER`) """
 
     is_default = models.BooleanField(
         _('use as default object for folder'), blank=True, default=False,
@@ -117,7 +129,7 @@ class FolderMixin(models.Model):
     def get_default_file(self, media_types=None):
         if self.node_type == media_types.FOLDER:
             if not media_types:
-                files = self.get_children().filter(node_type=FileNode.FILE)
+                files = self.get_children().filter(node_type=media_types.FILE)
             else:
                 files = self.get_children().filter(media_type__in=media_types)
             # TODO the two counts are due to the fact that, at this time,
@@ -145,7 +157,49 @@ class FolderMixin(models.Model):
         return self.node_type == media_types.FOLDER
 
     def is_file(self):
-        return self.node_type == FileNode.FILE
+        return self.node_type == media_types.FILE
+
+    @classmethod
+    def get_top_node(cls):
+        """ Returns a symbolic node representing the root of all nodes.
+            This node is not actually stored in the database, but used in the
+            admin to link to the change list. """
+        return cls(name=('Media objects'), level=-1)
+
+    def is_top_node(self):
+        """ Returns True if the model instance is the top node. """
+        return self.level == -1
+
+    def get_node_path(self):
+        nodes = []
+        for node in self.get_ancestors():
+            nodes.append(node)
+        if (self.level != -1):
+            nodes.insert(0, self.get_top_node())
+        nodes.append(self)
+        return nodes
+
+    def get_path(self):
+        path = ''
+        for name in [node.name for node in self.get_ancestors()]:
+            path = '%s%s/' % (path, name) 
+        return '%s%s' % (path, self.name)
+
+    def is_descendant_of(self, ancestor_nodes):
+        if issubclass(ancestor_nodes.__class__, self.__class__):
+            ancestor_nodes = (ancestor_nodes,)
+        # Check whether requested folder is in selected nodes
+        is_descendant = self in ancestor_nodes
+        if not is_descendant:
+            # Check whether requested folder is a subfolder of selected nodes
+            ancestors = self.get_ancestors(ascending=True)
+            if ancestors:
+                self.parent_folder = ancestors[0]
+                for ancestor in ancestors:
+                    if ancestor in ancestor_nodes:
+                        is_descendant = True
+                        break
+        return is_descendant
 
 
 class MetadataMixin(models.Model):
@@ -295,10 +349,10 @@ class MetadataMixin(models.Model):
 
     def prepare_metadata(self):
         needs_folder_info = (hasattr(self, 'node_type')
-                             and self.node_type == FileNode.FOLDER
+                             and self.node_type == media_types.FOLDER
                              and hasattr(self, 'media_type'))
         if needs_folder_info:
-            self.media_type = FileNode.FOLDER
+            self.media_type = media_types.FOLDER
         self.slug = slugify(self.name)
         self.has_metadata = self.check_minimal_metadata()
 
@@ -434,7 +488,7 @@ class FileInfoMixin(models.Model):
 
     def make_name_unique_numbered(self, name, ext=''):
         # If file with same name exists in folder:
-        qs = FileNode.objects.filter(parent=self.parent)
+        qs = self.__class__.objects.filter(parent=self.parent)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
         number = 1
@@ -468,7 +522,7 @@ class FileInfoMixin(models.Model):
 
     @staticmethod
     def mimetype_to_media_type(filename):
-        mimetype = FileNode.get_mimetype(filename)
+        mimetype = self.get_mimetype(filename)
         if mimetype:
             if MIMETYPE_CONTENT_TYPE_MAP.has_key(mimetype):
                 return MIMETYPE_CONTENT_TYPE_MAP[mimetype]
