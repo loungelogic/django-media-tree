@@ -5,7 +5,7 @@ from django.template.defaultfilters import filesizeformat
 from django.utils.translation import ugettext_lazy as _
 
 from media_tree import settings as app_settings
-from media_tree.models.fancyfilenode import SimpleFileNode
+from media_tree.models.fancyfilenode import FancyFileNode
 from media_tree.models.simplefilenode import SimpleFileNode
 
 
