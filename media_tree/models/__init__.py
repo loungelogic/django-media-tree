@@ -1,8 +1,18 @@
+from django.core.exceptions import ImproperlyConfigured
 from ..settings import MEDIA_TREE_MODEL
 
 app, model = MEDIA_TREE_MODEL.split('.')
 if app == 'media_tree':
-    module = __import__('filenode', globals(), locals(), [model], -1)
+    if model == 'FileNode':
+        module_name = 'filenode'
+    elif model == 'SimpleFileNode':
+        module_name = 'simplefilenode'
+    else:
+        raise ImproperlyConfigured(
+            "django-media-tree does not define model '%s'. "
+            "Valid choices are: FileNode, SimpleFileNode." % model)
+
+    module = __import__(module_name, globals(), locals(), [model], -1)
     FileNode = getattr(module, model)
 else:
     from django.db.models import get_model

@@ -1,20 +1,12 @@
 #encoding=utf-8
 
 import mptt
-from media_tree import settings as app_settings
 from .base import BaseFileNode
 from .mixins import FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, \
                     PositionMixin, LinkMixin, AdminMixin
 
 
-__all__ = ['SimpleFileNode', 'FileNode']
-
-
-class SimpleFileNode(BaseFileNode):
-    class Meta:
-        app_label = 'media_tree'
-        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.SimpleFileNode'
-SimpleFileNode._default_manager = SimpleFileNode.objects
+__all__ = ['FileNode']
 
 
 class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin, 
@@ -51,7 +43,6 @@ class FileNode(FolderMixin, MetadataMixin, FileInfoMixin, ImageMixin,
 
     class Meta:
         app_label = 'media_tree'
-        managed = app_settings.MEDIA_TREE_MODEL == 'media_tree.FileNode'
 
     def __init__(self, *args, **kwargs):
         super(FileNode, self).__init__(*args, **kwargs)
